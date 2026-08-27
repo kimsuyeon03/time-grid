@@ -3,19 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>10분 단위 타임 그리드 트래커</title>
+  <title>time tracker</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
     :root {
-      --bg-color: #f1f5f9;
+      --bg-color: #f8fafc;
       --card-bg: #ffffff;
-      --text-main: #0f172a;
+      --text-main: #1e293b;
       --text-sub: #64748b;
       --border-color: #e2e8f0;
-      --primary-color: #4f46e5;
-      --primary-hover: #4338ca;
-      --danger-color: #ef4444;
-      --warning-color: #f59e0b;
+      --primary-color: #818cf8; /* 파스텔 인디고/라벤더 */
+      --primary-hover: #6366f1;
+      --danger-color: #f87171;  /* 파스텔 레드 */
+      --warning-color: #fbbf24; /* 파스텔 옐로우 */
     }
 
     * {
@@ -46,7 +46,7 @@
       background: var(--card-bg);
       border-radius: 16px;
       padding: 24px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
       border: 1px solid var(--border-color);
     }
 
@@ -71,7 +71,7 @@
     .date-badge {
       font-size: 0.9rem;
       color: var(--text-sub);
-      background: #f8fafc;
+      background: #f1f5f9;
       padding: 6px 12px;
       border-radius: 20px;
       border: 1px solid var(--border-color);
@@ -236,7 +236,7 @@
       background-color: #94a3b8;
     }
 
-    .status-dot.running { background-color: #22c55e; animation: pulse 1.5s infinite; }
+    .status-dot.running { background-color: #34d399; animation: pulse 1.5s infinite; }
     .status-dot.paused { background-color: var(--warning-color); }
 
     @keyframes pulse {
@@ -262,7 +262,7 @@
       display: flex;
       flex-direction: column;
       gap: 6px;
-      user-select: none; /* 드래그 중 텍스트 선택 방지 */
+      user-select: none;
     }
 
     .hour-row {
@@ -308,16 +308,15 @@
       transform: translateY(-1px);
     }
 
-    /* 드래그 선택 중일 때 스타일 */
     .cell.dragging-selected {
-      outline: 2px solid #4f46e5;
+      outline: 2px solid #818cf8;
       outline-offset: -2px;
-      background-color: rgba(79, 70, 229, 0.25) !important;
+      background-color: rgba(129, 140, 248, 0.3) !important;
     }
 
     .cell.filled {
-      border-color: rgba(0, 0, 0, 0.1);
-      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+      border-color: rgba(0, 0, 0, 0.05);
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
     }
 
     .cell-info-tooltip {
@@ -326,7 +325,7 @@
       bottom: 125%;
       left: 50%;
       transform: translateX(-50%);
-      background-color: #0f172a;
+      background-color: #1e293b;
       color: #ffffff;
       padding: 6px 10px;
       border-radius: 6px;
@@ -349,7 +348,7 @@
       display: none;
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(15, 23, 42, 0.4);
+      background: rgba(15, 23, 42, 0.3);
       backdrop-filter: blur(4px);
       z-index: 1000;
       justify-content: center;
@@ -415,18 +414,19 @@
           <input type="text" id="descInput" placeholder="예: 제미나이 프로젝트 구현">
         </div>
         <div class="input-group" style="flex: 0 0 auto;">
-          <label><i class="fa-solid fa-palette"></i> 색상 선택</label>
+          <label><i class="fa-solid fa-palette"></i> 파스텔 색상 선택</label>
           <div class="color-selection">
             <div class="color-picker-wrapper">
-              <input type="color" id="colorPicker" value="#4f46e5">
+              <input type="color" id="colorPicker" value="#a5b4fc">
             </div>
+            <!-- 파스텔 톤 색상 팔레트 -->
             <div class="color-presets" id="colorPresets">
-              <div class="color-swatch active" style="background-color: #4f46e5;" data-color="#4f46e5"></div>
-              <div class="color-swatch" style="background-color: #10b981;" data-color="#10b981"></div>
-              <div class="color-swatch" style="background-color: #f59e0b;" data-color="#f59e0b"></div>
-              <div class="color-swatch" style="background-color: #ef4444;" data-color="#ef4444"></div>
-              <div class="color-swatch" style="background-color: #8b5cf6;" data-color="#8b5cf6"></div>
-              <div class="color-swatch" style="background-color: #06b6d4;" data-color="#06b6d4"></div>
+              <div class="color-swatch active" style="background-color: #a5b4fc;" data-color="#a5b4fc"></div> <!-- 파스텔 라벤더 -->
+              <div class="color-swatch" style="background-color: #6ee7b7;" data-color="#6ee7b7"></div> <!-- 파스텔 민트 -->
+              <div class="color-swatch" style="background-color: #fde047;" data-color="#fde047"></div> <!-- 파스텔 버터 -->
+              <div class="color-swatch" style="background-color: #fca5a5;" data-color="#fca5a5"></div> <!-- 파스텔 핑크 -->
+              <div class="color-swatch" style="background-color: #c084fc;" data-color="#c084fc"></div> <!-- 파스텔 퍼플 -->
+              <div class="color-swatch" style="background-color: #38bdf8;" data-color="#38bdf8"></div> <!-- 파스텔 스카이 -->
             </div>
           </div>
         </div>
@@ -458,7 +458,7 @@
   <div class="card">
     <div class="grid-header">
       <h2 style="font-size: 1.1rem; font-weight: 700;"><i class="fa-solid fa-table-cells"></i> 하루 시간표 (05:00 ~ 05:00)</h2>
-      <span class="grid-instruction"><i class="fa-solid fa-hand-pointer"></i> 마우스/터치로 여러 칸을 드래그하여 한 번에 설정할 수 있습니다.</span>
+      <span class="grid-instruction"><i class="fa-solid fa-hand-pointer"></i> 드래그해서 여러 칸을 연속 선택할 수 있습니다.</span>
     </div>
     
     <div class="grid-container" id="gridContainer"></div>
@@ -482,7 +482,7 @@
     </div>
     <div class="input-group">
       <label>색상 선택</label>
-      <input type="color" id="modalColorPicker" value="#4f46e5" style="width:100%; height:40px;">
+      <input type="color" id="modalColorPicker" value="#a5b4fc" style="width:100%; height:40px;">
     </div>
     <div class="modal-buttons">
       <button class="btn" style="background:#e2e8f0; color:#334155;" onclick="clearCellData()">삭제</button>
@@ -493,11 +493,11 @@
 
 <script>
   // Global States
-  let timerState = 'STOPPED'; // 'STOPPED', 'RUNNING', 'PAUSED'
+  let timerState = 'STOPPED';
   let activeSession = null;
   let timerInterval = null;
-  let elapsedTime = 0; // seconds
-  let selectedColor = '#4f46e5';
+  let elapsedTime = 0;
+  let selectedColor = '#a5b4fc'; // 기본 선택 색상: 파스텔 라벤더
 
   // Drag Select States
   let isDragging = false;
@@ -513,7 +513,6 @@
     createGrid();
     loadGridDataData();
 
-    // Global drag end events
     window.addEventListener('mouseup', endDragSelect);
     window.addEventListener('touchend', endDragSelect);
   });
@@ -543,7 +542,7 @@
     });
   }
 
-  // Create Grid (05:00 ~ 05:00 Next Day)
+  // Create Grid (05:00 ~ 05:00)
   function createGrid() {
     const gridContainer = document.getElementById('gridContainer');
     gridContainer.innerHTML = '';
@@ -571,16 +570,13 @@
         cell.setAttribute('data-key', cellKey);
         cell.setAttribute('data-time', `${displayLabel}:${String(m).padStart(2, '0')}`);
 
-        // Tooltip element
         const tooltip = document.createElement('div');
         tooltip.className = 'cell-info-tooltip';
         cell.appendChild(tooltip);
 
-        // Mouse Drag Events
         cell.addEventListener('mousedown', (e) => startDragSelect(cellKey, e));
         cell.addEventListener('mouseenter', () => hoverDragSelect(cellKey));
 
-        // Touch Drag Events for Mobile
         cell.addEventListener('touchstart', (e) => startDragSelect(cellKey, e), {passive: false});
 
         cellsWrapper.appendChild(cell);
@@ -590,7 +586,6 @@
       gridContainer.appendChild(row);
     }
 
-    // Mobile touchmove handlers
     gridContainer.addEventListener('touchmove', (e) => {
       if (!isDragging) return;
       const touch = e.touches[0];
