@@ -12,10 +12,10 @@
       --text-main: #1e293b;
       --text-sub: #64748b;
       --border-color: #e2e8f0;
-      --primary-color: #818cf8; /* 파스텔 인디고 */
-      --primary-hover: #6366f1;
-      --danger-color: #f87171;  /* 파스텔 레드 */
-      --warning-color: #fbbf24; /* 파스텔 옐로우 */
+      --primary-color: #a5b4fc; /* 파스텔 라벤더/인디고 */
+      --primary-hover: #818cf8;
+      --danger-color: #fca5a5;  /* 파스텔 레드/핑크 */
+      --warning-color: #fde047; /* 파스텔 옐로우 */
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -45,7 +45,7 @@
       border: 1px solid var(--border-color);
     }
 
-    /* Header & Date Controls */
+    /* Header & Date Controller */
     .header-title {
       display: flex;
       justify-content: space-between;
@@ -68,38 +68,40 @@
       align-items: center;
       gap: 8px;
       background: #f1f5f9;
-      padding: 4px 8px;
+      padding: 6px 12px;
       border-radius: 12px;
       border: 1px solid var(--border-color);
     }
 
     .date-btn {
-      background: none;
-      border: none;
-      color: var(--text-sub);
+      background: white;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
       cursor: pointer;
-      padding: 6px 10px;
+      padding: 6px 12px;
       border-radius: 8px;
-      font-size: 0.9rem;
-      transition: background 0.2s;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: all 0.2s;
     }
 
     .date-btn:hover {
       background: #e2e8f0;
-      color: var(--text-main);
     }
 
     input[type="date"] {
-      border: none;
-      background: transparent;
+      border: 1px solid var(--border-color);
+      background: white;
+      border-radius: 8px;
+      padding: 5px 8px;
       font-weight: 600;
       color: var(--text-main);
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       outline: none;
       cursor: pointer;
     }
 
-    /* Controls Layout */
+    /* Control Panel */
     .control-panel {
       display: flex;
       flex-direction: column;
@@ -135,10 +137,10 @@
     }
 
     input[type="text"]:focus {
-      border-color: var(--primary-color);
+      border-color: var(--primary-hover);
     }
 
-    /* Color Picker & Presets */
+    /* Pastel Colors */
     .color-selection {
       display: flex;
       align-items: center;
@@ -199,14 +201,15 @@
       transition: all 0.2s;
     }
 
-    .btn-start { background-color: var(--primary-color); color: white; }
-    .btn-start:hover { background-color: var(--primary-hover); }
+    .btn-start { background-color: var(--primary-color); color: #1e1b4b; }
+    .btn-start:hover { background-color: var(--primary-hover); color: white; }
 
-    .btn-pause { background-color: var(--warning-color); color: white; }
-    .btn-stop { background-color: var(--danger-color); color: white; }
+    .btn-pause { background-color: var(--warning-color); color: #713f12; }
+    .btn-stop { background-color: var(--danger-color); color: #7f1d1d; }
 
     .btn:disabled {
       background-color: #cbd5e1;
+      color: #94a3b8;
       cursor: not-allowed;
       opacity: 0.7;
     }
@@ -240,7 +243,7 @@
       background-color: #94a3b8;
     }
 
-    .status-dot.running { background-color: #34d399; animation: pulse 1.5s infinite; }
+    .status-dot.running { background-color: #6ee7b7; animation: pulse 1.5s infinite; }
     .status-dot.paused { background-color: var(--warning-color); }
 
     @keyframes pulse {
@@ -249,7 +252,7 @@
       100% { opacity: 1; }
     }
 
-    /* Grid Layout */
+    /* Time Grid */
     .grid-header {
       display: flex;
       justify-content: space-between;
@@ -310,7 +313,7 @@
     .cell.dragging-selected {
       outline: 2px solid #818cf8;
       outline-offset: -2px;
-      background-color: rgba(129, 140, 248, 0.3) !important;
+      background-color: rgba(165, 180, 252, 0.4) !important;
     }
 
     .cell.filled {
@@ -386,11 +389,11 @@
     <div class="header-title">
       <h1><i class="fa-solid fa-clock-rotate-left"></i> 10분 타임 그리드 트래커</h1>
       
-      <!-- 날짜 선택 컨트롤러 복구 -->
+      <!-- 정상 작동하는 날짜 선택 컨트롤러 -->
       <div class="date-controller">
-        <button class="date-btn" onclick="changeDate(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+        <button class="date-btn" onclick="changeDate(-1)"><i class="fa-solid fa-chevron-left"></i> 이전</button>
         <input type="date" id="datePicker" onchange="onDateChange()">
-        <button class="date-btn" onclick="changeDate(1)"><i class="fa-solid fa-chevron-right"></i></button>
+        <button class="date-btn" onclick="changeDate(1)">다음 <i class="fa-solid fa-chevron-right"></i></button>
         <button class="date-btn" onclick="setToday()"><i class="fa-solid fa-calendar-day"></i> 오늘</button>
       </div>
     </div>
@@ -403,19 +406,20 @@
         </div>
         <div class="input-group">
           <label for="descInput"><i class="fa-solid fa-align-left"></i> 상세 내용</label>
-          <input type="text" id="descInput" placeholder="예: 프로젝트 진행">
+          <input type="text" id="descInput" placeholder="예: 프로젝트 작업">
         </div>
         <div class="input-group" style="flex: 0 0 auto;">
           <label><i class="fa-solid fa-palette"></i> 파스텔 색상 선택</label>
           <div class="color-selection">
             <input type="color" id="colorPicker" value="#a5b4fc">
+            <!-- 파스텔 색상 팔레트 -->
             <div class="color-presets" id="colorPresets">
               <div class="color-swatch active" style="background-color: #a5b4fc;" data-color="#a5b4fc"></div>
               <div class="color-swatch" style="background-color: #6ee7b7;" data-color="#6ee7b7"></div>
               <div class="color-swatch" style="background-color: #fde047;" data-color="#fde047"></div>
               <div class="color-swatch" style="background-color: #fca5a5;" data-color="#fca5a5"></div>
               <div class="color-swatch" style="background-color: #c084fc;" data-color="#c084fc"></div>
-              <div class="color-swatch" style="background-color: #38bdf8;" data-color="#38bdf8"></div>
+              <div class="color-swatch" style="background-color: #67e8f9;" data-color="#67e8f9"></div>
             </div>
           </div>
         </div>
@@ -444,7 +448,7 @@
   <div class="card">
     <div class="grid-header">
       <h2 style="font-size: 1.1rem; font-weight: 700;"><i class="fa-solid fa-table-cells"></i> 하루 시간표 (05:00 ~ 05:00)</h2>
-      <span class="grid-instruction"><i class="fa-solid fa-hand-pointer"></i> 드래그해서 여러 칸을 연속 선택할 수 있습니다.</span>
+      <span class="grid-instruction"><i class="fa-solid fa-hand-pointer"></i> 마우스/터치 드래그로 여러 칸을 연속 선택할 수 있습니다.</span>
     </div>
     
     <div class="grid-container" id="gridContainer"></div>
@@ -467,7 +471,7 @@
       <input type="text" id="modalDescInput" placeholder="상세 내용을 입력하세요">
     </div>
     <div class="input-group">
-      <label>색상 선택</label>
+      <label>파스텔 색상 선택</label>
       <input type="color" id="modalColorPicker" value="#a5b4fc" style="width:100%; height:40px;">
     </div>
     <div class="modal-buttons">
@@ -490,23 +494,15 @@
   let gridData = {};
 
   document.addEventListener('DOMContentLoaded', () => {
+    createGrid();
     initDatePicker();
     initColorPresets();
-    createGrid();
-    loadGridData();
 
     window.addEventListener('mouseup', endDragSelect);
     window.addEventListener('touchend', endDragSelect);
   });
 
-  /* 날짜 관리 함수들 */
-  function initDatePicker() {
-    const today = new Date();
-    currentDateStr = formatDate(today);
-    const datePicker = document.getElementById('datePicker');
-    datePicker.value = currentDateStr;
-  }
-
+  /* 1. 날짜 처리 관련 핵심 로직 */
   function formatDate(dateObj) {
     const y = dateObj.getFullYear();
     const m = String(dateObj.getMonth() + 1).padStart(2, '0');
@@ -514,9 +510,18 @@
     return `${y}-${m}-${d}`;
   }
 
+  function initDatePicker() {
+    const today = new Date();
+    currentDateStr = formatDate(today);
+    const datePicker = document.getElementById('datePicker');
+    datePicker.value = currentDateStr;
+    loadGridData();
+  }
+
   function changeDate(days) {
     const datePicker = document.getElementById('datePicker');
-    let curr = new Date(datePicker.value);
+    const parts = datePicker.value.split('-');
+    let curr = new Date(parts[0], parts[1] - 1, parts[2]);
     curr.setDate(curr.getDate() + days);
     datePicker.value = formatDate(curr);
     onDateChange();
@@ -533,6 +538,7 @@
     loadGridData();
   }
 
+  /* 2. 파스텔 색상 선택 로직 */
   function initColorPresets() {
     const swatches = document.querySelectorAll('.color-swatch');
     const colorPicker = document.getElementById('colorPicker');
@@ -552,6 +558,7 @@
     });
   }
 
+  /* 3. 타임 그리드 생성 */
   function createGrid() {
     const gridContainer = document.getElementById('gridContainer');
     gridContainer.innerHTML = '';
@@ -583,6 +590,7 @@
         tooltip.className = 'cell-info-tooltip';
         cell.appendChild(tooltip);
 
+        /* 드래그 이벤트 */
         cell.addEventListener('mousedown', (e) => startDragSelect(cellKey, e));
         cell.addEventListener('mouseenter', () => hoverDragSelect(cellKey));
         cell.addEventListener('touchstart', (e) => startDragSelect(cellKey, e), {passive: false});
@@ -594,6 +602,7 @@
       gridContainer.appendChild(row);
     }
 
+    /* 터치 드래그 감지 */
     gridContainer.addEventListener('touchmove', (e) => {
       if (!isDragging) return;
       const touch = e.touches[0];
@@ -605,6 +614,7 @@
     }, {passive: false});
   }
 
+  /* 드래그 선택 로직 */
   function startDragSelect(cellKey, e) {
     if (e.type === 'touchstart') e.preventDefault();
     isDragging = true;
@@ -642,6 +652,7 @@
     });
   }
 
+  /* 타이머 로직 */
   function startTimer() {
     const title = document.getElementById('titleInput').value.trim();
     const desc = document.getElementById('descInput').value.trim();
@@ -791,6 +802,7 @@
     }
   }
 
+  /* 모달 레이어 */
   function openMultiCellModal() {
     if (selectedCellKeys.length === 0) return;
 
@@ -847,15 +859,16 @@
     closeModal();
   }
 
-  /* 날짜별 로컬 스토리지 저장 및 불러오기 */
+  /* 날짜별 로컬스토리지 저장 / 불러오기 */
   function saveGridData() {
+    if (!currentDateStr) return;
     const allStorage = JSON.parse(localStorage.getItem('timeGridStorage') || '{}');
     allStorage[currentDateStr] = gridData;
     localStorage.setItem('timeGridStorage', JSON.stringify(allStorage));
   }
 
   function loadGridData() {
-    // 이전 시간표 초기화
+    // 1. 그리드 UI 깨끗하게 비우기
     for (let i = 0; i < 24; i++) {
       for (let m = 0; m < 60; m += 10) {
         setCellData(`cell-${i}-${m}`, null);
@@ -863,6 +876,8 @@
     }
     gridData = {};
 
+    // 2. 현재 선택된 날짜의 데이터를 로드
+    if (!currentDateStr) return;
     const allStorage = JSON.parse(localStorage.getItem('timeGridStorage') || '{}');
     const dayData = allStorage[currentDateStr];
 
