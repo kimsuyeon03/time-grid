@@ -1,0 +1,1501 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>10분 단위 타임 그리드 트래커</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    :root {
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #1e293b;
+      --text-sub: #64748b;
+      --border-color: #e2e8f0;
+      --primary-color: #a5b4fc; /* 파스텔 라벤더/인디고 */
+      --primary-hover: #818cf8;
+      --danger-color: #fca5a5;  /* 파스텔 레드/핑크 */
+      --warning-color: #fde047; /* 파스텔 옐로우 */
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      padding: 24px 16px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1100px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+      border: 1px solid var(--border-color);
+    }
+
+    /* Header & Date Controller */
+    .header-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .header-title h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .date-controller {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #f1f5f9;
+      padding: 6px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      flex-wrap: wrap;
+    }
+
+    .date-btn {
+      background: white;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      cursor: pointer;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .date-btn:hover {
+      background: #e2e8f0;
+    }
+
+    input[type="date"] {
+      border: 1px solid var(--border-color);
+      background: white;
+      border-radius: 8px;
+      padding: 5px 8px;
+      font-weight: 600;
+      color: var(--text-main);
+      font-size: 0.9rem;
+      outline: none;
+      cursor: pointer;
+    }
+
+    /* [신규] 파이어베이스 로그인/동기화 상태 바 */
+    .sync-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .sync-btn {
+      background: white;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      cursor: pointer;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .sync-btn:hover { background: #e2e8f0; }
+    .sync-btn.google { color: #1e1b4b; }
+
+    .sync-status {
+      font-size: 0.8rem;
+      color: var(--text-sub);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .sync-status .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #6ee7b7;
+    }
+
+    /* Control Panel */
+    .control-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .inputs-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .input-group label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-sub);
+    }
+
+    input[type="text"] {
+      padding: 10px 14px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      outline: none;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--primary-hover);
+    }
+
+    /* Pastel Colors */
+    .color-selection {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    input[type="color"] {
+      -webkit-appearance: none;
+      border: none;
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      cursor: pointer;
+      background: none;
+    }
+
+    input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+    input[type="color"]::-webkit-color-swatch {
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+    }
+
+    .color-presets {
+      display: flex;
+      gap: 6px;
+    }
+
+    .color-swatch {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.15s;
+    }
+
+    .color-swatch:hover { transform: scale(1.15); }
+    .color-swatch.active { border-color: var(--text-main); }
+
+    /* Action Buttons */
+    .buttons-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .btn-start { background-color: var(--primary-color); color: #1e1b4b; }
+    .btn-start:hover { background-color: var(--primary-hover); color: white; }
+
+    .btn-pause { background-color: var(--warning-color); color: #713f12; }
+    .btn-stop { background-color: var(--danger-color); color: #7f1d1d; }
+
+    .btn:disabled {
+      background-color: #cbd5e1;
+      color: #94a3b8;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+    .timer-display {
+      margin-left: auto;
+      font-family: monospace;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text-main);
+      background: #f8fafc;
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+    }
+
+    /* Status Bar */
+    .status-bar {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-sub);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: #94a3b8;
+    }
+
+    .status-dot.running { background-color: #6ee7b7; animation: pulse 1.5s infinite; }
+    .status-dot.paused { background-color: var(--warning-color); }
+
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.4; }
+      100% { opacity: 1; }
+    }
+
+    /* Time Grid */
+    .grid-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .grid-instruction {
+      font-size: 0.85rem;
+      color: var(--text-sub);
+    }
+
+    /* 행 사이 간격도 없애서 모눈종이처럼 전체가 붙어보이도록 함 */
+    .grid-container {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      user-select: none;
+      border-top: 1px solid var(--border-color);
+      border-left: 1px solid var(--border-color);
+    }
+
+    .hour-row {
+      display: flex;
+      align-items: stretch;
+    }
+
+    .hour-label {
+      width: 55px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-sub);
+      text-align: right;
+      padding: 0 10px 0 0;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    /* gap과 margin을 모두 없애서 칸들이 서로 딱 붙게 함(모눈종이 모양).
+       position:relative는 병합 라벨 오버레이 기준점. */
+    .cells-wrapper {
+      display: flex;
+      flex: 1;
+      position: relative;
+    }
+
+    .cell {
+      flex: 1;
+      height: 36px;
+      background-color: #f1f5f9;
+      border-radius: 0;
+      border-right: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color);
+      cursor: pointer;
+      position: relative;
+      transition: border-color 0.1s ease;
+    }
+
+    .cell:hover {
+      border-color: #94a3b8;
+      z-index: 2;
+    }
+
+    .cell.dragging-selected {
+      outline: 2px solid #818cf8;
+      outline-offset: -2px;
+      background-color: rgba(165, 180, 252, 0.4) !important;
+      z-index: 3;
+    }
+
+    .cell.filled {
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    /* 칸 내부를 실제 흐른 시간 비율만큼만 채우기 위한 레이어 */
+    .cell-fill-wrapper {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .cell-segment {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .cell-segment-label {
+      width: 100%;
+      padding: 0 3px;
+      font-size: 0.6rem;
+      font-weight: 700;
+      line-height: 1.1;
+      color: rgba(30, 41, 59, 0.85);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* 같은 활동으로 이어붙인 칸들 위에 제목을 한 번만 표시하는 오버레이 라벨 */
+    .row-merge-label {
+      position: absolute;
+      top: 0;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: rgba(30, 41, 59, 0.85);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    .cell-info-tooltip {
+      visibility: hidden;
+      position: absolute;
+      bottom: 125%;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #1e293b;
+      color: #ffffff;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      white-space: nowrap;
+      z-index: 100;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .cell:hover .cell-info-tooltip {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.3);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-overlay.active { display: flex; }
+
+    .modal {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      width: 90%;
+      max-width: 420px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-title { font-weight: 700; font-size: 1.1rem; }
+    .modal-close { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-sub); }
+    .modal-buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="card">
+    <div class="header-title">
+      <h1><i class="fa-solid fa-clock-rotate-left"></i> 10분 타임 그리드 트래커</h1>
+
+      <div class="date-controller">
+        <button class="date-btn" onclick="changeDate(-1)"><i class="fa-solid fa-chevron-left"></i> 이전</button>
+        <input type="date" id="datePicker" onchange="onDateChange()">
+        <button class="date-btn" onclick="changeDate(1)">다음 <i class="fa-solid fa-chevron-right"></i></button>
+        <button class="date-btn" onclick="setToday()"><i class="fa-solid fa-calendar-day"></i> 오늘</button>
+      </div>
+    </div>
+
+    <!-- [신규] 파이어베이스 로그인 / 동기화 상태 바 -->
+    <div class="sync-bar" id="syncBar">
+      <button class="sync-btn google" id="loginBtn" onclick="signInWithGoogle()">
+        <i class="fa-brands fa-google"></i> Google로 로그인
+      </button>
+      <button class="sync-btn" id="logoutBtn" onclick="signOutUser()" style="display:none;">
+        <i class="fa-solid fa-right-from-bracket"></i> 로그아웃
+      </button>
+      <button class="sync-btn" id="uploadAllBtn" onclick="uploadAllToCloud()" style="display:none;" title="이 기기의 전체 기록을 클라우드에 업로드">
+        <i class="fa-solid fa-cloud-arrow-up"></i> 전체 업로드
+      </button>
+      <button class="sync-btn" id="downloadAllBtn" onclick="downloadAllFromCloud()" style="display:none;" title="클라우드의 전체 기록을 이 기기로 내려받기">
+        <i class="fa-solid fa-cloud-arrow-down"></i> 전체 내려받기
+      </button>
+      <span class="sync-status" id="syncStatus" style="display:none;">
+        <span class="dot"></span>
+        <span id="syncStatusText"></span>
+      </span>
+    </div>
+
+    <div class="control-panel">
+      <div class="inputs-row">
+        <div class="input-group">
+          <label for="titleInput"><i class="fa-solid fa-tag"></i> 활동 제목</label>
+          <input type="text" id="titleInput" placeholder="예: 코딩, 운동, 독서">
+        </div>
+        <div class="input-group">
+          <label for="descInput"><i class="fa-solid fa-align-left"></i> 상세 내용</label>
+          <input type="text" id="descInput" placeholder="예: 프로젝트 작업">
+        </div>
+        <div class="input-group" style="flex: 0 0 auto;">
+          <label><i class="fa-solid fa-palette"></i> 파스텔 색상 선택</label>
+          <div class="color-selection">
+            <input type="color" id="colorPicker" value="#a5b4fc">
+            <!-- 파스텔 색상 팔레트 -->
+            <div class="color-presets" id="colorPresets">
+              <div class="color-swatch active" style="background-color: #a5b4fc;" data-color="#a5b4fc"></div>
+              <div class="color-swatch" style="background-color: #6ee7b7;" data-color="#6ee7b7"></div>
+              <div class="color-swatch" style="background-color: #fde047;" data-color="#fde047"></div>
+              <div class="color-swatch" style="background-color: #fca5a5;" data-color="#fca5a5"></div>
+              <div class="color-swatch" style="background-color: #c084fc;" data-color="#c084fc"></div>
+              <div class="color-swatch" style="background-color: #67e8f9;" data-color="#67e8f9"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="buttons-row">
+        <button class="btn btn-start" id="startBtn" onclick="startTimer()">
+          <i class="fa-solid fa-play"></i> 시작
+        </button>
+        <button class="btn btn-pause" id="pauseBtn" onclick="togglePauseTimer()" disabled>
+          <i class="fa-solid fa-pause"></i> 일시정지
+        </button>
+        <button class="btn btn-stop" id="stopBtn" onclick="stopTimer()" disabled>
+          <i class="fa-solid fa-square"></i> 정지 및 기록
+        </button>
+        <div class="timer-display" id="timerDisplay">00:00:00</div>
+      </div>
+
+      <div class="status-bar">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">대기 중</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="grid-header">
+      <h2 style="font-size: 1.1rem; font-weight: 700;"><i class="fa-solid fa-table-cells"></i> 하루 시간표 (05:00 ~ 05:00)</h2>
+      <span class="grid-instruction"><i class="fa-solid fa-hand-pointer"></i> 마우스/터치 드래그로 여러 칸을 연속 선택할 수 있습니다.</span>
+    </div>
+
+    <div class="grid-container" id="gridContainer"></div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="cellModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTimeTitle">시간 블록 선택 설정</div>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="input-group">
+      <label for="modalTitleInput">활동 제목</label>
+      <input type="text" id="modalTitleInput" placeholder="제목을 입력하세요">
+    </div>
+    <div class="input-group">
+      <label for="modalDescInput">상세 내용</label>
+      <input type="text" id="modalDescInput" placeholder="상세 내용을 입력하세요">
+    </div>
+    <div class="input-group">
+      <label>파스텔 색상 선택</label>
+      <input type="color" id="modalColorPicker" value="#a5b4fc" style="width:100%; height:40px;">
+    </div>
+    <div class="modal-buttons">
+      <button class="btn" style="background:#e2e8f0; color:#334155;" onclick="clearCellData()">삭제</button>
+      <button class="btn btn-start" onclick="saveModalData()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 파이어베이스 SDK (compat 버전 - 별도 빌드 과정 없이 그대로 사용 가능) -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+
+<script>
+  /* ================== 파이어베이스 설정 (직접 채워넣기) ==================
+     1. https://console.firebase.google.com 에서 새 프로젝트 생성
+     2. 왼쪽 메뉴 빌드하기 > Firestore Database > "데이터베이스 만들기" (프로덕션 모드로 시작해도 OK)
+     3. 왼쪽 메뉴 빌드하기 > Authentication > "시작하기" > Sign-in method 탭에서 "Google" 사용 설정
+     4. 프로젝트 설정(톱니바퀴 아이콘) > 일반 탭 맨 아래 "내 앱" > 웹 앱 추가(</> 아이콘)
+        > 표시되는 firebaseConfig 값을 아래 객체에 그대로 붙여넣기
+     5. Firestore Database > 규칙(Rules) 탭에 아래 규칙을 붙여넣고 "게시" (본인 데이터만 본인이 읽고 쓰게 하는 규칙):
+
+        rules_version = '2';
+        service cloud.firestore {
+          match /databases/{database}/documents {
+            match /timeGridUsers/{userId}/{document=**} {
+              allow read, write: if request.auth != null && request.auth.uid == userId;
+            }
+          }
+        }
+
+     6. 이 파일을 GitHub Pages 등 https 주소로 호스팅해서 사용하세요.
+        (file://로 그냥 열면 구글 로그인 팝업이 브라우저에 의해 차단됩니다)
+  ========================================================================== */
+  const firebaseConfig = {
+    apiKey: "AIzaSyB3taP5BHx_LzT4Rpl4GwBnaR97m4G5vPM",
+    authDomain: "time-track-4077c.firebaseapp.com",
+    projectId: "time-track-4077c",
+    storageBucket: "time-track-4077c.firebasestorage.app",
+    messagingSenderId: "833735134888",
+    appId: "1:833735134888:web:53f14088505041a935fc9d"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  let currentUser = null;
+  let dayDocUnsubscribe = null;
+
+  let currentDateStr = '';
+  let timerState = 'STOPPED';
+  let activeSession = null;
+  let timerInterval = null;
+  let selectedColor = '#a5b4fc';
+
+  let isDragging = false;
+  let selectedCellKeys = [];
+  // 칸 하나(cellKey)당 값이 아니라, 세그먼트 배열을 가짐
+  // 세그먼트: { start: 0~10(분, 칸 내 오프셋), end: 0~10, title, desc, color }
+  let gridData = {};
+
+  const ACTIVE_SESSION_KEY = 'activeTimerSession';
+  const GRID_STORAGE_KEY = 'timeGridStorage';
+
+  document.addEventListener('DOMContentLoaded', () => {
+    createGrid();
+    initDatePicker();
+    initColorPresets();
+    restoreActiveSession(); // 앱을 껐다 켜도 진행 중이던 타이머를 복원
+
+    window.addEventListener('mouseup', endDragSelect);
+    window.addEventListener('touchend', endDragSelect);
+  });
+
+  /* ================== 파이어베이스 로그인 / 동기화 ================== */
+
+  function signInWithGoogle() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider).catch(err => {
+      alert('로그인에 실패했습니다: ' + err.message);
+    });
+  }
+
+  function signOutUser() {
+    auth.signOut();
+  }
+
+  auth.onAuthStateChanged(user => {
+    currentUser = user;
+    updateAuthUI();
+
+    if (dayDocUnsubscribe) {
+      dayDocUnsubscribe();
+      dayDocUnsubscribe = null;
+    }
+
+    if (user) {
+      subscribeToCurrentDay();
+    }
+  });
+
+  function updateAuthUI() {
+    const loginBtn = document.getElementById('loginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const uploadAllBtn = document.getElementById('uploadAllBtn');
+    const downloadAllBtn = document.getElementById('downloadAllBtn');
+    const syncStatus = document.getElementById('syncStatus');
+    const syncStatusText = document.getElementById('syncStatusText');
+
+    if (currentUser) {
+      loginBtn.style.display = 'none';
+      logoutBtn.style.display = '';
+      uploadAllBtn.style.display = '';
+      downloadAllBtn.style.display = '';
+      syncStatus.style.display = '';
+      syncStatusText.innerText = `${currentUser.displayName || currentUser.email}로 동기화 중`;
+    } else {
+      loginBtn.style.display = '';
+      logoutBtn.style.display = 'none';
+      uploadAllBtn.style.display = 'none';
+      downloadAllBtn.style.display = 'none';
+      syncStatus.style.display = 'none';
+    }
+  }
+
+  function dayDocRef(dateStr) {
+    return db.collection('timeGridUsers').doc(currentUser.uid).collection('days').doc(dateStr);
+  }
+
+  // 현재 화면에 보이는 날짜의 클라우드 문서를 실시간으로 구독 -> 다른 기기에서 바뀌면 자동 반영
+  function subscribeToCurrentDay() {
+    if (dayDocUnsubscribe) {
+      dayDocUnsubscribe();
+      dayDocUnsubscribe = null;
+    }
+    if (!currentUser || !currentDateStr) return;
+
+    dayDocUnsubscribe = dayDocRef(currentDateStr).onSnapshot(docSnap => {
+      if (!docSnap.exists) return;
+      const data = docSnap.data();
+      if (!data || !data.payload) return;
+
+      let parsed;
+      try {
+        parsed = JSON.parse(data.payload);
+      } catch (e) {
+        return;
+      }
+
+      // 로컬 저장소에도 반영해서 오프라인일 때도 최신 상태 유지
+      const allStorage = JSON.parse(localStorage.getItem(GRID_STORAGE_KEY) || '{}');
+      allStorage[currentDateStr] = parsed;
+      localStorage.setItem(GRID_STORAGE_KEY, JSON.stringify(allStorage));
+
+      applyDayDataToGrid(parsed);
+    }, err => {
+      console.error('실시간 동기화 오류:', err);
+    });
+  }
+
+  // 현재 날짜 데이터를 클라우드에 저장 (해당 날짜를 수정할 때마다 호출)
+  function pushDayToCloud(dateStr) {
+    if (!currentUser) return;
+    const allStorage = JSON.parse(localStorage.getItem(GRID_STORAGE_KEY) || '{}');
+    const dayData = allStorage[dateStr] || {};
+
+    dayDocRef(dateStr).set({
+      payload: JSON.stringify(dayData),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(err => console.error('클라우드 저장 실패:', err));
+  }
+
+  // 이 기기의 로컬 기록 전체(모든 날짜)를 클라우드에 업로드 (최초 연동 시 사용)
+  function uploadAllToCloud() {
+    if (!currentUser) return;
+    const allStorage = JSON.parse(localStorage.getItem(GRID_STORAGE_KEY) || '{}');
+    const dateKeys = Object.keys(allStorage);
+
+    if (dateKeys.length === 0) {
+      alert('업로드할 기록이 없습니다.');
+      return;
+    }
+
+    const proceed = confirm(`이 기기의 ${dateKeys.length}개 날짜 기록을 클라우드에 업로드합니다.\n클라우드에 같은 날짜 기록이 있으면 덮어써집니다.\n계속할까요?`);
+    if (!proceed) return;
+
+    const batch = db.batch();
+    dateKeys.forEach(dateKey => {
+      batch.set(dayDocRef(dateKey), {
+        payload: JSON.stringify(allStorage[dateKey]),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    });
+
+    batch.commit()
+      .then(() => alert('업로드가 완료되었습니다.'))
+      .catch(err => alert('업로드 실패: ' + err.message));
+  }
+
+  // 클라우드의 전체 기록(모든 날짜)을 이 기기로 내려받기 (새 기기 설정 시 사용)
+  function downloadAllFromCloud() {
+    if (!currentUser) return;
+
+    const proceed = confirm('클라우드의 전체 기록을 이 기기로 내려받습니다.\n같은 날짜의 로컬 기록은 덮어써집니다.\n계속할까요?');
+    if (!proceed) return;
+
+    db.collection('timeGridUsers').doc(currentUser.uid).collection('days').get()
+      .then(snapshot => {
+        const allStorage = JSON.parse(localStorage.getItem(GRID_STORAGE_KEY) || '{}');
+        snapshot.forEach(doc => {
+          try {
+            allStorage[doc.id] = JSON.parse(doc.data().payload);
+          } catch (e) { /* 손상된 문서는 건너뜀 */ }
+        });
+        localStorage.setItem(GRID_STORAGE_KEY, JSON.stringify(allStorage));
+        loadGridData();
+        alert('내려받기가 완료되었습니다.');
+      })
+      .catch(err => alert('내려받기 실패: ' + err.message));
+  }
+
+  /* 1. 날짜 처리 관련 핵심 로직 */
+  function formatDate(dateObj) {
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const d = String(dateObj.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  // 그리드는 05:00 ~ 다음날 05:00 을 "하루"로 취급하므로,
+  // 00:00~04:59 사이의 시각은 화면상 "전날" 그리드에 속한다.
+  function getGridDateKey(dateObj) {
+    const d = new Date(dateObj);
+    if (d.getHours() < 5) {
+      d.setDate(d.getDate() - 1);
+    }
+    return formatDate(d);
+  }
+
+  function initDatePicker() {
+    const today = new Date();
+    currentDateStr = formatDate(today);
+    const datePicker = document.getElementById('datePicker');
+    datePicker.value = currentDateStr;
+    refreshCurrentDateView();
+  }
+
+  function changeDate(days) {
+    const datePicker = document.getElementById('datePicker');
+    const parts = datePicker.value.split('-');
+    let curr = new Date(parts[0], parts[1] - 1, parts[2]);
+    curr.setDate(curr.getDate() + days);
+    datePicker.value = formatDate(curr);
+    onDateChange();
+  }
+
+  function setToday() {
+    const datePicker = document.getElementById('datePicker');
+    datePicker.value = formatDate(new Date());
+    onDateChange();
+  }
+
+  function onDateChange() {
+    currentDateStr = document.getElementById('datePicker').value;
+    refreshCurrentDateView();
+  }
+
+  // 날짜가 바뀔 때마다: 로컬 데이터로 먼저 그리고, 로그인 상태면 그 날짜의 클라우드 구독을 새로 건다
+  function refreshCurrentDateView() {
+    loadGridData();
+    if (currentUser) {
+      subscribeToCurrentDay();
+    } else if (dayDocUnsubscribe) {
+      dayDocUnsubscribe();
+      dayDocUnsubscribe = null;
+    }
+  }
+
+  /* 2. 파스텔 색상 선택 로직 */
+  function initColorPresets() {
+    const swatches = document.querySelectorAll('.color-swatch');
+    const colorPicker = document.getElementById('colorPicker');
+
+    swatches.forEach(swatch => {
+      swatch.addEventListener('click', () => {
+        swatches.forEach(s => s.classList.remove('active'));
+        swatch.classList.add('active');
+        selectedColor = swatch.getAttribute('data-color');
+        colorPicker.value = selectedColor;
+      });
+    });
+
+    colorPicker.addEventListener('input', (e) => {
+      selectedColor = e.target.value;
+      swatches.forEach(s => s.classList.remove('active'));
+    });
+  }
+
+  /* 3. 타임 그리드 생성 */
+  function createGrid() {
+    const gridContainer = document.getElementById('gridContainer');
+    gridContainer.innerHTML = '';
+
+    for (let i = 0; i < 24; i++) {
+      let hourNum = (5 + i) % 24;
+      let displayLabel = `${String(hourNum).padStart(2, '0')}:00`;
+
+      const row = document.createElement('div');
+      row.className = 'hour-row';
+
+      const label = document.createElement('div');
+      label.className = 'hour-label';
+      label.innerText = displayLabel;
+      row.appendChild(label);
+
+      const cellsWrapper = document.createElement('div');
+      cellsWrapper.className = 'cells-wrapper';
+      cellsWrapper.setAttribute('data-hour-index', i);
+
+      for (let m = 0; m < 60; m += 10) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        const cellKey = `cell-${i}-${m}`;
+        cell.id = cellKey;
+        cell.setAttribute('data-key', cellKey);
+        cell.setAttribute('data-time', `${String(hourNum).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+
+        // 실제 채워진 비율만큼 표시할 레이어
+        const fillWrapper = document.createElement('div');
+        fillWrapper.className = 'cell-fill-wrapper';
+        cell.appendChild(fillWrapper);
+
+        const tooltip = document.createElement('div');
+        tooltip.className = 'cell-info-tooltip';
+        cell.appendChild(tooltip);
+
+        /* 드래그 이벤트 */
+        cell.addEventListener('mousedown', (e) => startDragSelect(cellKey, e));
+        cell.addEventListener('mouseenter', () => hoverDragSelect(cellKey));
+        cell.addEventListener('touchstart', (e) => startDragSelect(cellKey, e), {passive: false});
+
+        cellsWrapper.appendChild(cell);
+      }
+
+      row.appendChild(cellsWrapper);
+      gridContainer.appendChild(row);
+    }
+
+    /* 터치 드래그 감지 */
+    gridContainer.addEventListener('touchmove', (e) => {
+      if (!isDragging) return;
+      const touch = e.touches[0];
+      const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+      if (targetEl && targetEl.classList.contains('cell')) {
+        const cellKey = targetEl.getAttribute('data-key');
+        if (cellKey) hoverDragSelect(cellKey);
+      }
+    }, {passive: false});
+  }
+
+  /* 드래그 선택 로직 */
+  function startDragSelect(cellKey, e) {
+    if (e.type === 'touchstart') e.preventDefault();
+    isDragging = true;
+    clearSelectionStyles();
+    selectedCellKeys = [cellKey];
+    highlightSelectedCells();
+  }
+
+  function hoverDragSelect(cellKey) {
+    if (!isDragging) return;
+    if (!selectedCellKeys.includes(cellKey)) {
+      selectedCellKeys.push(cellKey);
+      highlightSelectedCells();
+    }
+  }
+
+  function endDragSelect() {
+    if (!isDragging) return;
+    isDragging = false;
+    if (selectedCellKeys.length > 0) {
+      openMultiCellModal();
+    }
+  }
+
+  function highlightSelectedCells() {
+    selectedCellKeys.forEach(key => {
+      const el = document.getElementById(key);
+      if (el) el.classList.add('dragging-selected');
+    });
+  }
+
+  function clearSelectionStyles() {
+    document.querySelectorAll('.cell.dragging-selected').forEach(el => {
+      el.classList.remove('dragging-selected');
+    });
+  }
+
+  /* 타이머 로직 */
+  function startTimer() {
+    const title = document.getElementById('titleInput').value.trim();
+    const desc = document.getElementById('descInput').value.trim();
+
+    if (!title) {
+      alert('작업 제목을 입력해주세요!');
+      document.getElementById('titleInput').focus();
+      return;
+    }
+
+    if (timerState === 'STOPPED') {
+      activeSession = {
+        title,
+        desc,
+        color: selectedColor,
+        slices: [{ start: new Date(), end: null }]
+      };
+    }
+
+    timerState = 'RUNNING';
+    updateUIForTimerState();
+    updateTimerDisplay();
+    saveActiveSession();
+
+    timerInterval = setInterval(updateTimerDisplay, 1000);
+  }
+
+  function togglePauseTimer() {
+    if (timerState === 'RUNNING') {
+      timerState = 'PAUSED';
+      clearInterval(timerInterval);
+      activeSession.slices[activeSession.slices.length - 1].end = new Date();
+      updateUIForTimerState();
+      saveActiveSession();
+    } else if (timerState === 'PAUSED') {
+      timerState = 'RUNNING';
+      activeSession.slices.push({ start: new Date(), end: null });
+      updateUIForTimerState();
+      saveActiveSession();
+
+      timerInterval = setInterval(updateTimerDisplay, 1000);
+    }
+  }
+
+  function stopTimer() {
+    if (timerState === 'STOPPED') return;
+
+    clearInterval(timerInterval);
+
+    if (timerState === 'RUNNING') {
+      activeSession.slices[activeSession.slices.length - 1].end = new Date();
+    }
+
+    activeSession.slices.forEach(slice => {
+      if (slice.start && slice.end) {
+        fillGridTimeRange(slice.start, slice.end, activeSession.title, activeSession.desc, activeSession.color);
+      }
+    });
+
+    timerState = 'STOPPED';
+    activeSession = null;
+
+    clearActiveSession();
+    updateTimerDisplay();
+    updateUIForTimerState();
+
+    document.getElementById('titleInput').value = '';
+    document.getElementById('descInput').value = '';
+  }
+
+  function getElapsedSeconds() {
+    if (!activeSession) return 0;
+    const now = new Date();
+    let total = 0;
+    activeSession.slices.forEach(slice => {
+      if (slice.start) {
+        const end = slice.end || now;
+        total += Math.floor((end - slice.start) / 1000);
+      }
+    });
+    return total;
+  }
+
+  function updateTimerDisplay() {
+    const totalSeconds = getElapsedSeconds();
+    const hrs = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+    const mins = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+    const secs = String(totalSeconds % 60).padStart(2, '0');
+    document.getElementById('timerDisplay').innerText = `${hrs}:${mins}:${secs}`;
+  }
+
+  function updateUIForTimerState() {
+    const startBtn = document.getElementById('startBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+
+    if (timerState === 'RUNNING') {
+      startBtn.disabled = true;
+      pauseBtn.disabled = false;
+      stopBtn.disabled = false;
+      pauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i> 일시정지';
+      statusDot.className = 'status-dot running';
+      statusText.innerText = `진행 중: [${activeSession.title}]`;
+    } else if (timerState === 'PAUSED') {
+      startBtn.disabled = true;
+      pauseBtn.disabled = false;
+      stopBtn.disabled = false;
+      pauseBtn.innerHTML = '<i class="fa-solid fa-play"></i> 재개';
+      statusDot.className = 'status-dot paused';
+      statusText.innerText = `일시정지됨: [${activeSession.title}]`;
+    } else {
+      startBtn.disabled = false;
+      pauseBtn.disabled = true;
+      stopBtn.disabled = true;
+      pauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i> 일시정지';
+      statusDot.className = 'status-dot';
+      statusText.innerText = '대기 중';
+    }
+  }
+
+  function hourIndexFromCellKey(cellKey) {
+    return parseInt(cellKey.split('-')[1], 10);
+  }
+
+  /* 10분 칸 전체를 무조건 채우지 않고, 실제로 겹치는 "분" 구간만큼만 세그먼트로 기록.
+     실제로 겹치는 시간대만 새 기록이 기존 기록을 덮어씀.
+     세션이 여러 날짜에 걸치면(자정을 넘기는 경우), 영향을 받은 모든 날짜를 클라우드에도 반영 */
+  function fillGridTimeRange(start, end, title, desc, color) {
+    const allStorage = JSON.parse(localStorage.getItem(GRID_STORAGE_KEY) || '{}');
+    let curr = new Date(start);
+    const affectedHourIndexes = new Set();
+    const affectedDateKeys = new Set();
+
+    while (curr < end) {
+      let hour = curr.getHours();
+      let minute = curr.getMinutes();
+      let hourIndex = hour >= 5 ? hour - 5 : hour + 19;
+      let blockStartMinute = Math.floor(minute / 10) * 10;
+      let cellKey = `cell-${hourIndex}-${blockStartMinute}`;
+      let gridDateKey = getGridDateKey(curr);
+
+      const cellBlockStart = new Date(curr.getFullYear(), curr.getMonth(), curr.getDate(), curr.getHours(), blockStartMinute, 0, 0);
+      const cellBlockEnd = new Date(cellBlockStart.getTime() + 10 * 60000);
+
+      const segEndTime = end < cellBlockEnd ? end : cellBlockEnd;
+      let segStartOffset = Math.round((curr - cellBlockStart) / 60000);
+      let segEndOffset = Math.round((segEndTime - cellBlockStart) / 60000);
+      segStartOffset = Math.max(0, Math.min(10, segStartOffset));
+      segEndOffset = Math.max(0, Math.min(10, segEndOffset));
+
+      if (segEndOffset > segStartOffset) {
+        if (!allStorage[gridDateKey]) allStorage[gridDateKey] = {};
+        const existingSegments = allStorage[gridDateKey][cellKey] || [];
+        const merged = mergeSegment(existingSegments, { start: segStartOffset, end: segEndOffset, title, desc, color });
+        allStorage[gridDateKey][cellKey] = merged;
+        affectedDateKeys.add(gridDateKey);
+
+        if (gridDateKey === currentDateStr) {
+          gridData[cellKey] = merged;
+          renderCellSegments(cellKey);
+          affectedHourIndexes.add(hourIndex);
+        }
+      }
+
+      curr = cellBlockEnd;
+    }
+
+    localStorage.setItem(GRID_STORAGE_KEY, JSON.stringify(allStorage));
+    affectedHourIndexes.forEach(idx => updateRowVisuals(idx));
+
+    if (currentUser) {
+      affectedDateKeys.forEach(dateKey => pushDayToCloud(dateKey));
+    }
+  }
+
+  // 새 세그먼트와 겹치는 구간만큼 기존 세그먼트를 잘라내고 새 세그먼트를 추가
+  function mergeSegment(segments, newSeg) {
+    const updated = [];
+    segments.forEach(seg => {
+      if (seg.end <= newSeg.start || seg.start >= newSeg.end) {
+        updated.push(seg); // 겹치지 않음, 그대로 유지
+      } else {
+        if (seg.start < newSeg.start) updated.push({ ...seg, end: newSeg.start });
+        if (seg.end > newSeg.end) updated.push({ ...seg, start: newSeg.end });
+      }
+    });
+    updated.push(newSeg);
+    updated.sort((a, b) => a.start - b.start);
+    return updated;
+  }
+
+  /* 칸 하나를 실제 세그먼트 비율대로 그려주는 렌더 함수.
+     칸 전체(0~10)를 꽉 채우는 단일 세그먼트의 제목은 여기서 그리지 않고,
+     updateRowVisuals()에서 이어붙인 구간 위에 한 번만 표시한다. */
+  function renderCellSegments(cellKey) {
+    const cell = document.getElementById(cellKey);
+    if (!cell) return;
+
+    const fillWrapper = cell.querySelector('.cell-fill-wrapper');
+    const tooltip = cell.querySelector('.cell-info-tooltip');
+    const timeStr = cell.getAttribute('data-time');
+
+    fillWrapper.innerHTML = '';
+
+    const segments = gridData[cellKey];
+
+    if (segments && segments.length > 0) {
+      cell.classList.add('filled');
+      const tooltipLines = [];
+      const isFullBlock = segments.length === 1 && segments[0].start === 0 && segments[0].end === 10;
+
+      segments.forEach(seg => {
+        const segDiv = document.createElement('div');
+        segDiv.className = 'cell-segment';
+        const widthPct = ((seg.end - seg.start) / 10) * 100;
+        const leftPct = (seg.start / 10) * 100;
+        segDiv.style.left = leftPct + '%';
+        segDiv.style.width = widthPct + '%';
+        segDiv.style.backgroundColor = seg.color;
+
+        // 칸 전체를 채우는 세그먼트는 이어붙임 라벨(row-merge-label)에서 처리하므로 여기선 라벨 생략.
+        // 부분적으로만 채워진 세그먼트는 충분히 넓을 때만 자체 라벨 표시.
+        if (!isFullBlock && widthPct >= 45) {
+          const labelSpan = document.createElement('span');
+          labelSpan.className = 'cell-segment-label';
+          labelSpan.innerText = seg.title;
+          segDiv.appendChild(labelSpan);
+        }
+
+        fillWrapper.appendChild(segDiv);
+        tooltipLines.push(`${seg.title}${seg.desc ? ' (' + seg.desc + ')' : ''}`);
+      });
+
+      tooltip.innerText = `[${timeStr}] ` + tooltipLines.join(' / ');
+    } else {
+      cell.classList.remove('filled');
+      tooltip.innerText = '';
+    }
+  }
+
+  /* 같은 행(같은 시간대) 안에서 인접한 칸들이 "칸 전체를 같은 제목/색으로 채운" 상태로
+     연속되면, 그 칸들 사이의 경계선을 지워 하나로 이어붙이고 제목을 구간 위에 한 번만 표시.
+     칸들은 항상 서로 붙어있는 모눈종이 형태이며, 이 함수는 "같은 활동 사이의 경계선"만 지운다. */
+  function updateRowVisuals(hourIndex) {
+    const cellsWrapper = document.querySelector(`.cells-wrapper[data-hour-index="${hourIndex}"]`);
+    if (!cellsWrapper) return;
+
+    const cells = Array.from(cellsWrapper.querySelectorAll('.cell'));
+
+    // 1. 이전에 그려둔 병합 라벨 제거
+    cellsWrapper.querySelectorAll('.row-merge-label').forEach(el => el.remove());
+
+    // 2. 칸 전체(0~10)를 하나의 활동으로 채운 칸인지 판별
+    const fullBlockInfo = cells.map(cell => {
+      const key = cell.getAttribute('data-key');
+      const segs = gridData[key];
+      if (segs && segs.length === 1 && segs[0].start === 0 && segs[0].end === 10) {
+        return { title: segs[0].title, color: segs[0].color };
+      }
+      return null;
+    });
+
+    // 3. 경계선 스타일 초기화 (기본값으로 되돌림)
+    cells.forEach(cell => {
+      cell.style.borderLeftWidth = '';
+      cell.style.borderRightWidth = '';
+    });
+
+    // 4. 같은 제목+색상의 연속 구간(run)을 찾아 내부 경계선을 지움
+    let i = 0;
+    while (i < cells.length) {
+      if (!fullBlockInfo[i]) { i++; continue; }
+
+      let j = i;
+      while (
+        j + 1 < cells.length &&
+        fullBlockInfo[j + 1] &&
+        fullBlockInfo[j + 1].title === fullBlockInfo[i].title &&
+        fullBlockInfo[j + 1].color === fullBlockInfo[i].color
+      ) {
+        j++;
+      }
+
+      applyRunStyle(cells, fullBlockInfo, i, j, cellsWrapper);
+      i = j + 1;
+    }
+  }
+
+  function applyRunStyle(cells, fullBlockInfo, start, end, cellsWrapper) {
+    for (let k = start; k <= end; k++) {
+      const cell = cells[k];
+      if (k !== end) cell.style.borderRightWidth = '0px'; // 다음 칸과 경계선 없이 이어붙임
+    }
+
+    // 이어붙인 구간 위에 제목을 한 번만 표시 (단일 칸이어도 동일한 방식으로 통일)
+    const firstCell = cells[start];
+    const lastCell = cells[end];
+    const label = document.createElement('div');
+    label.className = 'row-merge-label';
+    label.innerText = fullBlockInfo[start].title;
+    label.style.left = firstCell.offsetLeft + 'px';
+    label.style.width = (lastCell.offsetLeft + lastCell.offsetWidth - firstCell.offsetLeft) + 'px';
+    cellsWrapper.appendChild(label);
+  }
+
+  // 수동 편집(모달)용: 칸 전체를 하나의 활동으로 채우거나, null이면 비움
+  function setCellData(cellKey, data) {
+    if (data && data.title) {
+      gridData[cellKey] = [{ start: 0, end: 10, title: data.title, desc: data.desc, color: data.color }];
+    } else {
+      delete gridData[cellKey];
+    }
+    renderCellSegments(cellKey);
+  }
+
+  /* 모달 레이어 */
+  function openMultiCellModal() {
+    if (selectedCellKeys.length === 0) return;
+
+    const firstCell = document.getElementById(selectedCellKeys[0]);
+    const lastCell = document.getElementById(selectedCellKeys[selectedCellKeys.length - 1]);
+
+    const startTime = firstCell ? firstCell.getAttribute('data-time') : '';
+    const endTime = lastCell ? lastCell.getAttribute('data-time') : '';
+
+    document.getElementById('modalTimeTitle').innerText = `${startTime} ~ ${endTime} (${selectedCellKeys.length * 10}분 선택)`;
+
+    const existingSegments = gridData[selectedCellKeys[0]] || [];
+    const existingData = existingSegments.length > 0 ? existingSegments[0] : {};
+    document.getElementById('modalTitleInput').value = existingData.title || document.getElementById('titleInput').value || '';
+    document.getElementById('modalDescInput').value = existingData.desc || document.getElementById('descInput').value || '';
+    document.getElementById('modalColorPicker').value = existingData.color || selectedColor;
+
+    document.getElementById('cellModal').classList.add('active');
+  }
+
+  function closeModal() {
+    document.getElementById('cellModal').classList.remove('active');
+    clearSelectionStyles();
+    selectedCellKeys = [];
+  }
+
+  function saveModalData() {
+    if (selectedCellKeys.length === 0) return;
+
+    const title = document.getElementById('modalTitleInput').value.trim();
+    const desc = document.getElementById('modalDescInput').value.trim();
+    const color = document.getElementById('modalColorPicker').value;
+
+    if (!title) {
+      alert('제목을 입력해주세요.');
+      return;
+    }
+
+    const affectedHourIndexes = new Set();
+    selectedCellKeys.forEach(cellKey => {
+      setCellData(cellKey, { title, desc, color });
+      affectedHourIndexes.add(hourIndexFromCellKey(cellKey));
+    });
+
+    saveGridData();
+    affectedHourIndexes.forEach(idx => updateRowVisuals(idx));
+    closeModal();
+  }
+
+  function clearCellData() {
+    if (selectedCellKeys.length === 0) return;
+
+    const affectedHourIndexes = new Set();
+    selectedCellKeys.forEach(cellKey => {
+      setCellData(cellKey, null);
+      affectedHourIndexes.add(hourIndexFromCellKey(cellKey));
+    });
+
+    saveGridData();
+    affectedHourIndexes.forEach(idx => updateRowVisuals(idx));
+    closeModal();
+  }
+
+  /* 날짜별 로컬스토리지 저장 / 불러오기 (현재 화면에 보이는 날짜용, 수동 편집 시 사용) */
+  function saveGridData() {
+    if (!currentDateStr) return;
+    const allStorage = JSON.parse(localStorage.getItem(GRID_STORAGE_KEY) || '{}');
+    allStorage[currentDateStr] = gridData;
+    localStorage.setItem(GRID_STORAGE_KEY, JSON.stringify(allStorage));
+
+    if (currentUser) {
+      pushDayToCloud(currentDateStr);
+    }
+  }
+
+  // 특정 날짜의 데이터(dayData)를 실제 화면 그리드에 그려주는 공용 함수
+  // (localStorage에서 불러올 때, 클라우드 실시간 업데이트를 받을 때 공통으로 사용)
+  function applyDayDataToGrid(dayData) {
+    for (let i = 0; i < 24; i++) {
+      for (let m = 0; m < 60; m += 10) {
+        const key = `cell-${i}-${m}`;
+        delete gridData[key];
+        renderCellSegments(key);
+      }
+    }
+
+    if (dayData) {
+      Object.keys(dayData).forEach(key => {
+        const val = dayData[key];
+        if (Array.isArray(val) && val.length > 0) {
+          gridData[key] = val;
+        } else if (val && val.title) {
+          // 이전 버전(칸 전체 채우기 방식) 데이터 호환
+          gridData[key] = [{ start: 0, end: 10, title: val.title, desc: val.desc, color: val.color }];
+        } else {
+          return;
+        }
+        renderCellSegments(key);
+      });
+    }
+
+    for (let i = 0; i < 24; i++) {
+      updateRowVisuals(i);
+    }
+  }
+
+  function loadGridData() {
+    if (!currentDateStr) return;
+    const allStorage = JSON.parse(localStorage.getItem(GRID_STORAGE_KEY) || '{}');
+    applyDayDataToGrid(allStorage[currentDateStr]);
+  }
+
+  /* 진행 중인 타이머를 localStorage에 저장/복원 -> 앱(브라우저 탭)을 껐다 켜도 진행 상태가 유지됨
+     (타이머 자체의 실시간 기기 간 동기화는 하지 않고, 정지 후 기록된 결과만 클라우드에 동기화됩니다) */
+  function saveActiveSession() {
+    if (timerState === 'STOPPED' || !activeSession) {
+      clearActiveSession();
+      return;
+    }
+    const dataToSave = {
+      timerState,
+      session: {
+        title: activeSession.title,
+        desc: activeSession.desc,
+        color: activeSession.color,
+        slices: activeSession.slices.map(s => ({
+          start: s.start ? s.start.toISOString() : null,
+          end: s.end ? s.end.toISOString() : null
+        }))
+      }
+    };
+    localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify(dataToSave));
+  }
+
+  function clearActiveSession() {
+    localStorage.removeItem(ACTIVE_SESSION_KEY);
+  }
+
+  function restoreActiveSession() {
+    const raw = localStorage.getItem(ACTIVE_SESSION_KEY);
+    if (!raw) return;
+
+    try {
+      const data = JSON.parse(raw);
+      if (!data || !data.session || (data.timerState !== 'RUNNING' && data.timerState !== 'PAUSED')) {
+        clearActiveSession();
+        return;
+      }
+
+      activeSession = {
+        title: data.session.title,
+        desc: data.session.desc,
+        color: data.session.color,
+        slices: data.session.slices.map(s => ({
+          start: s.start ? new Date(s.start) : null,
+          end: s.end ? new Date(s.end) : null
+        }))
+      };
+
+      timerState = data.timerState;
+
+      if (timerState === 'RUNNING') {
+        const lastSlice = activeSession.slices[activeSession.slices.length - 1];
+        if (!lastSlice || lastSlice.end) {
+          activeSession.slices.push({ start: new Date(), end: null });
+        }
+      }
+
+      document.getElementById('titleInput').value = activeSession.title;
+      document.getElementById('descInput').value = activeSession.desc;
+      selectedColor = activeSession.color;
+      document.getElementById('colorPicker').value = activeSession.color;
+
+      updateUIForTimerState();
+      updateTimerDisplay();
+
+      if (timerState === 'RUNNING') {
+        timerInterval = setInterval(updateTimerDisplay, 1000);
+      }
+    } catch (e) {
+      console.error('세션 복원 실패:', e);
+      clearActiveSession();
+    }
+  }
+</script>
+</body>
+</html>
