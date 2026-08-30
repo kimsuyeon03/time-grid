@@ -1116,17 +1116,13 @@
     }
   }
 
-  function hourIndexFromCellKey(cellKey) {
-    return parseInt(cellKey.split('-')[1], 10);
-  }
-
   /* 10분 칸 전체를 무조건 채우지 않고, 실제로 겹치는 "분" 구간만큼만 세그먼트로 기록.
      실제로 겹치는 시간대만 새 기록이 기존 기록을 덮어씀.
      세션이 여러 날짜에 걸치면(자정을 넘기는 경우), 영향을 받은 모든 날짜를 클라우드에도 반영 */
   function fillGridTimeRange(start, end, title, desc, color) {
     const allStorage = JSON.parse(localStorage.getItem(GRID_STORAGE_KEY) || '{}');
     let curr = new Date(start);
-    const affectedHourIndexes = new Set();
+    let touchedCurrentDate = false;
     const affectedDateKeys = new Set();
 
     while (curr < end) {
@@ -1156,7 +1152,7 @@
         if (gridDateKey === currentDateStr) {
           gridData[cellKey] = merged;
           renderCellSegments(cellKey);
-          affectedHourIndexes.add(hourIndex);
+          touchedCurrentDate = true;
         }
       }
 
@@ -1164,7 +1160,7 @@
     }
 
     localStorage.setItem(GRID_STORAGE_KEY, JSON.stringify(allStorage));
-    affectedHourIndexes.forEach(idx => updateRowVisuals(idx));
+    if (touchedCurrentDate) refreshAllRowVisuals();
 
     if (currentUser) {
       affectedDateKeys.forEach(dateKey => pushDayToCloud(dateKey));
@@ -1238,10 +1234,14 @@
 
   /* 같은 행(같은 시간대) 안에서 인접한 칸들이 "칸 전체를 같은 제목/색으로 채운" 상태로
      연속되면, 그 칸들 사이의 경계선을 지워 하나로 이어붙이고 제목을 구간 위에 한 번만 표시.
-     칸들은 항상 서로 붙어있는 모눈종이 형태이며, 이 함수는 "같은 활동 사이의 경계선"만 지운다. */
-  function updateRowVisuals(hourIndex) {
+     칸들은 항상 서로 붙어있는 모눈종이 형태이며, 이 함수는 "같은 활동 사이의 경계선"만 지운다.
+     같은 활동이 시(행) 경계를 넘어 계속되는 경우(예: 18:50~19:10), 다음 행에서도 라벨을
+     또 표시하면 제목이 여러 번 반복되어 보이므로, 반드시 0~23행을 순서대로 호출해서
+     "이전 행이 마지막 칸까지 같은 활동으로 끝났는지" 정보를 이어받아 라벨 중복을 막는다.
+     이 함수를 단독으로 호출하지 말고 항상 refreshAllRowVisuals()를 통해 호출할 것. */
+  function updateRowVisuals(hourIndex, carryFromPrevRow) {
     const cellsWrapper = document.querySelector(`.cells-wrapper[data-hour-index="${hourIndex}"]`);
-    if (!cellsWrapper) return;
+    if (!cellsWrapper) return null;
 
     const cells = Array.from(cellsWrapper.querySelectorAll('.cell'));
 
@@ -1264,7 +1264,8 @@
       cell.style.borderRightWidth = '';
     });
 
-    // 4. 같은 제목+색상의 연속 구간(run)을 찾아 내부 경계선을 지움
+    // 4. 같은 제목+색상의 연속 구간(run)을 찾아 내부 경계선을 지우고, 라벨은 필요할 때만 표시
+    let carryToNextRow = null;
     let i = 0;
     while (i < cells.length) {
       if (!fullBlockInfo[i]) { i++; continue; }
@@ -1279,18 +1280,35 @@
         j++;
       }
 
-      applyRunStyle(cells, fullBlockInfo, i, j, cellsWrapper);
+      // 이 구간이 행의 맨 첫 칸부터 시작하고, 이전 행이 같은 활동으로 끝났다면 -> 이어지는 연속이므로 라벨 생략
+      const isContinuationFromPrevRow = (
+        i === 0 &&
+        carryFromPrevRow &&
+        carryFromPrevRow.title === fullBlockInfo[i].title &&
+        carryFromPrevRow.color === fullBlockInfo[i].color
+      );
+
+      applyRunStyle(cells, fullBlockInfo, i, j, cellsWrapper, !isContinuationFromPrevRow);
+
+      // 이 구간이 행의 마지막 칸까지 이어졌다면, 다음 행으로 "이어짐" 정보를 넘김
+      if (j === cells.length - 1) {
+        carryToNextRow = { title: fullBlockInfo[i].title, color: fullBlockInfo[i].color };
+      }
+
       i = j + 1;
     }
+
+    return carryToNextRow;
   }
 
-  function applyRunStyle(cells, fullBlockInfo, start, end, cellsWrapper) {
+  function applyRunStyle(cells, fullBlockInfo, start, end, cellsWrapper, showLabel) {
     for (let k = start; k <= end; k++) {
       const cell = cells[k];
       if (k !== end) cell.style.borderRightWidth = '0px'; // 다음 칸과 경계선 없이 이어붙임
     }
 
-    // 이어붙인 구간 위에 제목을 한 번만 표시 (단일 칸이어도 동일한 방식으로 통일)
+    if (!showLabel) return; // 앞 행에서 이어지는 연속 구간이면 제목을 또 그리지 않음
+
     const firstCell = cells[start];
     const lastCell = cells[end];
     const label = document.createElement('div');
@@ -1299,6 +1317,15 @@
     label.style.left = firstCell.offsetLeft + 'px';
     label.style.width = (lastCell.offsetLeft + lastCell.offsetWidth - firstCell.offsetLeft) + 'px';
     cellsWrapper.appendChild(label);
+  }
+
+  // 0시부터 23시까지 순서대로 모든 행을 다시 그려서, 행 경계를 넘는 연속 기록의 제목이
+  // 한 번만 표시되도록 보장하는 함수. 데이터가 바뀔 때는 항상 이 함수를 호출한다.
+  function refreshAllRowVisuals() {
+    let carry = null;
+    for (let hourIndex = 0; hourIndex < 24; hourIndex++) {
+      carry = updateRowVisuals(hourIndex, carry);
+    }
   }
 
   // 수동 편집(모달)용: 칸 전체를 하나의 활동으로 채우거나, null이면 비움
@@ -1350,28 +1377,24 @@
       return;
     }
 
-    const affectedHourIndexes = new Set();
     selectedCellKeys.forEach(cellKey => {
       setCellData(cellKey, { title, desc, color });
-      affectedHourIndexes.add(hourIndexFromCellKey(cellKey));
     });
 
     saveGridData();
-    affectedHourIndexes.forEach(idx => updateRowVisuals(idx));
+    refreshAllRowVisuals();
     closeModal();
   }
 
   function clearCellData() {
     if (selectedCellKeys.length === 0) return;
 
-    const affectedHourIndexes = new Set();
     selectedCellKeys.forEach(cellKey => {
       setCellData(cellKey, null);
-      affectedHourIndexes.add(hourIndexFromCellKey(cellKey));
     });
 
     saveGridData();
-    affectedHourIndexes.forEach(idx => updateRowVisuals(idx));
+    refreshAllRowVisuals();
     closeModal();
   }
 
@@ -1413,9 +1436,7 @@
       });
     }
 
-    for (let i = 0; i < 24; i++) {
-      updateRowVisuals(i);
-    }
+    refreshAllRowVisuals();
   }
 
   function loadGridData() {
