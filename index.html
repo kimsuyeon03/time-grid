@@ -211,7 +211,9 @@
 
     .color-presets {
       display: flex;
+      flex-wrap: wrap;
       gap: 6px;
+      max-width: 132px;
     }
 
     .color-swatch {
@@ -532,15 +534,25 @@
         <div class="input-group" style="flex: 0 0 auto;">
           <label><i class="fa-solid fa-palette"></i> 파스텔 색상 선택</label>
           <div class="color-selection">
-            <input type="color" id="colorPicker" value="#a5b4fc">
+            <input type="color" id="colorPicker" value="#F7EA9E">
             <!-- 파스텔 색상 팔레트 -->
             <div class="color-presets" id="colorPresets">
-              <div class="color-swatch active" style="background-color: #a5b4fc;" data-color="#a5b4fc"></div>
-              <div class="color-swatch" style="background-color: #6ee7b7;" data-color="#6ee7b7"></div>
-              <div class="color-swatch" style="background-color: #fde047;" data-color="#fde047"></div>
-              <div class="color-swatch" style="background-color: #fca5a5;" data-color="#fca5a5"></div>
-              <div class="color-swatch" style="background-color: #c084fc;" data-color="#c084fc"></div>
-              <div class="color-swatch" style="background-color: #67e8f9;" data-color="#67e8f9"></div>
+              <div class="color-swatch active" style="background-color: #F7EA9E;" data-color="#F7EA9E"></div>
+              <div class="color-swatch" style="background-color: #F3E3C3;" data-color="#F3E3C3"></div>
+              <div class="color-swatch" style="background-color: #F5C48D;" data-color="#F5C48D"></div>
+              <div class="color-swatch" style="background-color: #EDA396;" data-color="#EDA396"></div>
+              <div class="color-swatch" style="background-color: #DCE18A;" data-color="#DCE18A"></div>
+              <div class="color-swatch" style="background-color: #A9DB9E;" data-color="#A9DB9E"></div>
+              <div class="color-swatch" style="background-color: #9FE6C4;" data-color="#9FE6C4"></div>
+              <div class="color-swatch" style="background-color: #AEDDEA;" data-color="#AEDDEA"></div>
+              <div class="color-swatch" style="background-color: #A7C4F2;" data-color="#A7C4F2"></div>
+              <div class="color-swatch" style="background-color: #C7B2EC;" data-color="#C7B2EC"></div>
+              <div class="color-swatch" style="background-color: #F0AEEF;" data-color="#F0AEEF"></div>
+              <div class="color-swatch" style="background-color: #F0AFC4;" data-color="#F0AFC4"></div>
+              <div class="color-swatch" style="background-color: #AFA69A;" data-color="#AFA69A"></div>
+              <div class="color-swatch" style="background-color: #CDBB8C;" data-color="#CDBB8C"></div>
+              <div class="color-swatch" style="background-color: #D9D9D9;" data-color="#D9D9D9"></div>
+              <div class="color-swatch" style="background-color: #5C6B7A;" data-color="#5C6B7A"></div>
             </div>
           </div>
         </div>
@@ -593,7 +605,7 @@
     </div>
     <div class="input-group">
       <label>파스텔 색상 선택</label>
-      <input type="color" id="modalColorPicker" value="#a5b4fc" style="width:100%; height:40px;">
+      <input type="color" id="modalColorPicker" value="#F7EA9E" style="width:100%; height:40px;">
     </div>
     <div class="modal-buttons">
       <button class="btn" style="background:#e2e8f0; color:#334155;" onclick="clearCellData()">삭제</button>
@@ -648,7 +660,7 @@
   let timerState = 'STOPPED';
   let activeSession = null;
   let timerInterval = null;
-  let selectedColor = '#a5b4fc';
+  let selectedColor = '#F7EA9E';
 
   let isDragging = false;
   let selectedCellKeys = [];
@@ -1184,8 +1196,9 @@
   }
 
   /* 칸 하나를 실제 세그먼트 비율대로 그려주는 렌더 함수.
-     칸 전체(0~10)를 꽉 채우는 단일 세그먼트의 제목은 여기서 그리지 않고,
-     updateRowVisuals()에서 이어붙인 구간 위에 한 번만 표시한다. */
+     세그먼트가 하나뿐인 칸(꽉 찬 경우든 부분만 채워진 경우든)의 제목은 여기서 그리지 않고,
+     updateRowVisuals()의 통합 라벨 시스템에서 한 번만 표시한다.
+     한 칸에 서로 다른 활동이 여러 개 들어있는 경우에만 이 함수가 직접 라벨을 그린다. */
   function renderCellSegments(cellKey) {
     const cell = document.getElementById(cellKey);
     if (!cell) return;
@@ -1201,7 +1214,7 @@
     if (segments && segments.length > 0) {
       cell.classList.add('filled');
       const tooltipLines = [];
-      const isFullBlock = segments.length === 1 && segments[0].start === 0 && segments[0].end === 10;
+      const hasMultipleSegments = segments.length > 1;
 
       segments.forEach(seg => {
         const segDiv = document.createElement('div');
@@ -1212,9 +1225,9 @@
         segDiv.style.width = widthPct + '%';
         segDiv.style.backgroundColor = seg.color;
 
-        // 칸 전체를 채우는 세그먼트는 이어붙임 라벨(row-merge-label)에서 처리하므로 여기선 라벨 생략.
-        // 부분적으로만 채워진 세그먼트는 충분히 넓을 때만 자체 라벨 표시.
-        if (!isFullBlock && widthPct >= 45) {
+        // 한 칸에 서로 다른 활동이 여러 개 있을 때만 여기서 직접 라벨 표시.
+        // 세그먼트가 하나뿐이면(부분 채움 포함) 통합 라벨 시스템이 처리하므로 생략.
+        if (hasMultipleSegments && widthPct >= 45) {
           const labelSpan = document.createElement('span');
           labelSpan.className = 'cell-segment-label';
           labelSpan.innerText = seg.title;
@@ -1232,13 +1245,20 @@
     }
   }
 
-  /* 같은 행(같은 시간대) 안에서 인접한 칸들이 "칸 전체를 같은 제목/색으로 채운" 상태로
-     연속되면, 그 칸들 사이의 경계선을 지워 하나로 이어붙이고 제목을 구간 위에 한 번만 표시.
+  /* 같은 활동을 나타내는 세그먼트가 칸 경계에서 실제로 맞닿아 있으면(예: 앞 칸이 분:4~10,
+     다음 칸이 분:0~10) 하나로 이어붙이고 제목을 구간 위에 한 번만 표시.
+     시작 시각이 10분 단위가 아니어도(부분 채움 칸이어도) 동일하게 처리한다.
      칸들은 항상 서로 붙어있는 모눈종이 형태이며, 이 함수는 "같은 활동 사이의 경계선"만 지운다.
-     같은 활동이 시(행) 경계를 넘어 계속되는 경우(예: 18:50~19:10), 다음 행에서도 라벨을
-     또 표시하면 제목이 여러 번 반복되어 보이므로, 반드시 0~23행을 순서대로 호출해서
-     "이전 행이 마지막 칸까지 같은 활동으로 끝났는지" 정보를 이어받아 라벨 중복을 막는다.
+     같은 활동이 시(행) 경계를 넘어 계속되는 경우, 다음 행에서도 라벨을 또 표시하면 제목이
+     여러 번 반복되어 보이므로, 반드시 0~23행을 순서대로 호출해서 "이전 행이 마지막 칸까지
+     같은 활동으로 끝났는지" 정보를 이어받아 라벨 중복을 막는다.
      이 함수를 단독으로 호출하지 말고 항상 refreshAllRowVisuals()를 통해 호출할 것. */
+  function getCellSingleSegment(cellKey) {
+    const segs = gridData[cellKey];
+    if (segs && segs.length === 1) return segs[0];
+    return null;
+  }
+
   function updateRowVisuals(hourIndex, carryFromPrevRow) {
     const cellsWrapper = document.querySelector(`.cells-wrapper[data-hour-index="${hourIndex}"]`);
     if (!cellsWrapper) return null;
@@ -1248,15 +1268,8 @@
     // 1. 이전에 그려둔 병합 라벨 제거
     cellsWrapper.querySelectorAll('.row-merge-label').forEach(el => el.remove());
 
-    // 2. 칸 전체(0~10)를 하나의 활동으로 채운 칸인지 판별
-    const fullBlockInfo = cells.map(cell => {
-      const key = cell.getAttribute('data-key');
-      const segs = gridData[key];
-      if (segs && segs.length === 1 && segs[0].start === 0 && segs[0].end === 10) {
-        return { title: segs[0].title, color: segs[0].color };
-      }
-      return null;
-    });
+    // 2. 각 칸이 세그먼트를 정확히 하나만 갖고 있는지 확인 (여러 개면 병합 대상에서 제외)
+    const cellInfo = cells.map(cell => getCellSingleSegment(cell.getAttribute('data-key')));
 
     // 3. 경계선 스타일 초기화 (기본값으로 되돌림)
     cells.forEach(cell => {
@@ -1264,35 +1277,41 @@
       cell.style.borderRightWidth = '';
     });
 
-    // 4. 같은 제목+색상의 연속 구간(run)을 찾아 내부 경계선을 지우고, 라벨은 필요할 때만 표시
+    // 4. 실제로 맞닿아 있는(앞 칸 end===10 이고 다음 칸 start===0) 같은 제목+색상 구간을 찾아
+    //    내부 경계선을 지우고, 라벨은 필요할 때만 표시
     let carryToNextRow = null;
     let i = 0;
     while (i < cells.length) {
-      if (!fullBlockInfo[i]) { i++; continue; }
+      if (!cellInfo[i]) { i++; continue; }
 
       let j = i;
       while (
         j + 1 < cells.length &&
-        fullBlockInfo[j + 1] &&
-        fullBlockInfo[j + 1].title === fullBlockInfo[i].title &&
-        fullBlockInfo[j + 1].color === fullBlockInfo[i].color
+        cellInfo[j].end === 10 &&
+        cellInfo[j + 1] &&
+        cellInfo[j + 1].start === 0 &&
+        cellInfo[j + 1].title === cellInfo[i].title &&
+        cellInfo[j + 1].color === cellInfo[i].color
       ) {
         j++;
       }
 
-      // 이 구간이 행의 맨 첫 칸부터 시작하고, 이전 행이 같은 활동으로 끝났다면 -> 이어지는 연속이므로 라벨 생략
+      // 이 구간이 행의 맨 첫 칸부터 시작하고(칸의 처음부터 채워짐), 이전 행이 같은 활동으로
+      // 정확히 경계까지 끝났다면 -> 이어지는 연속이므로 라벨 생략
       const isContinuationFromPrevRow = (
         i === 0 &&
+        cellInfo[i].start === 0 &&
         carryFromPrevRow &&
-        carryFromPrevRow.title === fullBlockInfo[i].title &&
-        carryFromPrevRow.color === fullBlockInfo[i].color
+        carryFromPrevRow.title === cellInfo[i].title &&
+        carryFromPrevRow.color === cellInfo[i].color
       );
 
-      applyRunStyle(cells, fullBlockInfo, i, j, cellsWrapper, !isContinuationFromPrevRow);
+      applyRunStyle(cells, cellInfo, i, j, cellsWrapper, !isContinuationFromPrevRow);
 
-      // 이 구간이 행의 마지막 칸까지 이어졌다면, 다음 행으로 "이어짐" 정보를 넘김
-      if (j === cells.length - 1) {
-        carryToNextRow = { title: fullBlockInfo[i].title, color: fullBlockInfo[i].color };
+      // 이 구간이 행의 마지막 칸까지, 그리고 정확히 칸 경계(10분)까지 이어졌다면
+      // 다음 행으로 "이어짐" 정보를 넘김
+      if (j === cells.length - 1 && cellInfo[j].end === 10) {
+        carryToNextRow = { title: cellInfo[i].title, color: cellInfo[i].color };
       }
 
       i = j + 1;
@@ -1301,21 +1320,25 @@
     return carryToNextRow;
   }
 
-  function applyRunStyle(cells, fullBlockInfo, start, end, cellsWrapper, showLabel) {
+  function applyRunStyle(cells, cellInfo, start, end, cellsWrapper, showLabel) {
     for (let k = start; k <= end; k++) {
       const cell = cells[k];
-      if (k !== end) cell.style.borderRightWidth = '0px'; // 다음 칸과 경계선 없이 이어붙임
+      if (k !== end) cell.style.borderRightWidth = '0px'; // 실제로 맞닿은 다음 칸과 경계선 없이 이어붙임
     }
 
     if (!showLabel) return; // 앞 행에서 이어지는 연속 구간이면 제목을 또 그리지 않음
 
     const firstCell = cells[start];
     const lastCell = cells[end];
+    // 라벨 위치도 칸 전체가 아니라 실제 세그먼트가 차지하는 비율만큼만 정확히 계산
+    const leftPx = firstCell.offsetLeft + firstCell.offsetWidth * (cellInfo[start].start / 10);
+    const rightPx = lastCell.offsetLeft + lastCell.offsetWidth * (cellInfo[end].end / 10);
+
     const label = document.createElement('div');
     label.className = 'row-merge-label';
-    label.innerText = fullBlockInfo[start].title;
-    label.style.left = firstCell.offsetLeft + 'px';
-    label.style.width = (lastCell.offsetLeft + lastCell.offsetWidth - firstCell.offsetLeft) + 'px';
+    label.innerText = cellInfo[start].title;
+    label.style.left = leftPx + 'px';
+    label.style.width = (rightPx - leftPx) + 'px';
     cellsWrapper.appendChild(label);
   }
 
