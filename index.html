@@ -313,6 +313,48 @@
       color: var(--text-sub);
     }
 
+    /* [신규] 활동별 합계 리스트 (글머리 기호 대신 활동 색상 점을 불릿처럼 사용) */
+    .activity-summary-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .activity-summary-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.95rem;
+    }
+
+    .activity-summary-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .activity-summary-name {
+      flex: 1;
+      font-weight: 600;
+      color: var(--text-main);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .activity-summary-duration {
+      font-weight: 700;
+      color: var(--text-sub);
+      flex-shrink: 0;
+    }
+
+    .activity-summary-empty {
+      color: var(--text-sub);
+      font-size: 0.9rem;
+    }
+
     /* 행 사이 간격도 없애서 모눈종이처럼 전체가 붙어보이도록 함 */
     .grid-container {
       display: flex;
@@ -585,6 +627,13 @@
     </div>
 
     <div class="grid-container" id="gridContainer"></div>
+  </div>
+
+  <div class="card">
+    <div class="grid-header">
+      <h2 style="font-size: 1.1rem; font-weight: 700;"><i class="fa-solid fa-list-ul"></i> 활동별 합계</h2>
+    </div>
+    <ul class="activity-summary-list" id="activitySummaryList"></ul>
   </div>
 </div>
 
@@ -1172,7 +1221,7 @@
     }
 
     localStorage.setItem(GRID_STORAGE_KEY, JSON.stringify(allStorage));
-    if (touchedCurrentDate) refreshAllRowVisuals();
+    if (touchedCurrentDate) refreshCurrentDateDisplay();
 
     if (currentUser) {
       affectedDateKeys.forEach(dateKey => pushDayToCloud(dateKey));
@@ -1246,12 +1295,12 @@
   }
 
   /* 같은 활동을 나타내는 세그먼트가 칸 경계에서 실제로 맞닿아 있으면(예: 앞 칸이 분:4~10,
-     다음 칸이 분:0~10) 하나로 이어붙이고, 그 활동 전체(행 경계를 넘나들 수도 있음)를 통틀어
-     제목을 딱 한 번만 표시한다. 시작 시각이 10분 단위가 아니어도(부분 채움 칸이어도) 동일하게 처리.
+     다음 칸이 분:0~10) 하나로 이어붙인다. 시작 시각이 10분 단위가 아니어도(부분 채움 칸이어도)
+     동일하게 처리한다.
 
-     제목은 항상 "첫 번째 칸"이 아니라, 그 활동이 걸쳐있는 여러 칸(행 경계를 넘는 경우 포함) 중에서
-     "가장 넓은 구간"에 표시한다. 그래야 활동이 10분짜리 좁은 칸에서 시작해서 넓은 칸으로 이어질 때
-     제목이 좁은 칸에 끼여 잘리지 않는다.
+     제목은 그 활동이 걸쳐있는 여러 칸(행 경계를 넘는 경우 포함)에 순서대로 나눠서 채운다.
+     예를 들어 첫 구간이 글자 하나 들어갈 정도로 좁으면 그 구간엔 "포"만, 나머지 "트폴리오
+     만들기"는 다음 구간에 이어서 표시된다. 제목을 이미 다 표시했으면 남은 구간은 색만 칠해진다.
 
      칸들은 항상 서로 붙어있는 모눈종이 형태이며, 경계선은 실제로 맞닿은 칸 사이에서만 지운다. */
   function getCellSingleSegment(cellKey) {
@@ -1331,11 +1380,10 @@
       if (!rowEndsOpen) openRun = null;
     }
 
-    // ---- 2단계: 경계선을 지우고, 각 run에서 가장 넓은 구간 하나에만 제목 라벨을 표시 ----
+    // ---- 2단계: 경계선을 지우고, 각 run의 제목을 여러 구간에 순서대로 나눠서 채워 넣는다.
+    //           (앞 구간이 좁으면 앞부분 글자만, 나머지는 뒤 구간에 이어서 표시 -> 빈 공간 최소화) ----
     globalRuns.forEach(run => {
-      let bestSegment = null;
-      let bestWidth = -1;
-
+      // 먼저 각 구간의 실제 픽셀 위치/너비를 계산하면서 경계선 처리
       run.segments.forEach(seg => {
         const { cells, cellInfo } = rowData[seg.h];
 
@@ -1347,26 +1395,73 @@
         const lastCell = cells[seg.end];
         const leftPx = firstCell.offsetLeft + firstCell.offsetWidth * (cellInfo[seg.start].start / 10);
         const rightPx = lastCell.offsetLeft + lastCell.offsetWidth * (cellInfo[seg.end].end / 10);
-        const widthPx = rightPx - leftPx;
 
         seg.leftPx = leftPx;
-        seg.widthPx = widthPx;
-
-        if (widthPx > bestWidth) {
-          bestWidth = widthPx;
-          bestSegment = seg;
-        }
+        seg.widthPx = rightPx - leftPx;
       });
 
-      if (bestSegment) {
+      // 제목 문자열을 구간 순서대로 소비하면서, 각 구간의 너비에 맞는 만큼만 표시
+      let remainingTitle = run.title;
+      const LABEL_HORIZONTAL_PADDING = 6; // .row-merge-label 좌우 여백 대략치
+
+      run.segments.forEach(seg => {
+        if (remainingTitle.length === 0) return; // 이미 제목을 다 표시했으면 이 구간은 색만
+
+        const availableWidth = seg.widthPx - LABEL_HORIZONTAL_PADDING;
+        if (availableWidth <= 0) return; // 너무 좁아 글자를 넣을 수 없으면 색만 표시
+
+        const fitLength = fitPrefixLength(remainingTitle, availableWidth);
+        const chunk = remainingTitle.slice(0, fitLength);
+        remainingTitle = remainingTitle.slice(fitLength);
+
         const label = document.createElement('div');
         label.className = 'row-merge-label';
-        label.innerText = run.title;
-        label.style.left = bestSegment.leftPx + 'px';
-        label.style.width = bestSegment.widthPx + 'px';
-        rowData[bestSegment.h].cellsWrapper.appendChild(label);
-      }
+        label.innerText = chunk;
+        label.style.left = seg.leftPx + 'px';
+        label.style.width = seg.widthPx + 'px';
+        rowData[seg.h].cellsWrapper.appendChild(label);
+      });
     });
+  }
+
+  // 라벨과 같은 폰트로 텍스트 폭을 재기 위한 숨겨진 측정용 엘리먼트
+  function getLabelMeasurer() {
+    let el = document.getElementById('__labelMeasurer');
+    if (!el) {
+      el = document.createElement('span');
+      el.id = '__labelMeasurer';
+      el.style.position = 'absolute';
+      el.style.visibility = 'hidden';
+      el.style.whiteSpace = 'nowrap';
+      el.style.left = '-9999px';
+      el.style.top = '-9999px';
+      el.style.fontSize = '0.75rem';
+      el.style.fontWeight = '700';
+      el.style.fontFamily = getComputedStyle(document.body).fontFamily;
+      document.body.appendChild(el);
+    }
+    return el;
+  }
+
+  // text의 앞부분 중 maxWidth(px) 안에 들어가는 최대 글자 수를 구함 (최소 1글자는 보장해서 진행이 멈추지 않게 함)
+  function fitPrefixLength(text, maxWidth) {
+    if (text.length === 0) return 0;
+    const measurer = getLabelMeasurer();
+    measurer.textContent = text;
+    if (measurer.getBoundingClientRect().width <= maxWidth) return text.length;
+
+    let lo = 1, hi = text.length, best = 1;
+    while (lo <= hi) {
+      const mid = Math.floor((lo + hi) / 2);
+      measurer.textContent = text.slice(0, mid);
+      if (measurer.getBoundingClientRect().width <= maxWidth) {
+        best = mid;
+        lo = mid + 1;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    return best;
   }
 
   // 수동 편집(모달)용: 칸 전체를 하나의 활동으로 채우거나, null이면 비움
@@ -1423,7 +1518,7 @@
     });
 
     saveGridData();
-    refreshAllRowVisuals();
+    refreshCurrentDateDisplay();
     closeModal();
   }
 
@@ -1435,7 +1530,7 @@
     });
 
     saveGridData();
-    refreshAllRowVisuals();
+    refreshCurrentDateDisplay();
     closeModal();
   }
 
@@ -1477,7 +1572,77 @@
       });
     }
 
+    refreshCurrentDateDisplay();
+  }
+
+  // 그리드 다시 그리기 + 활동별 합계 다시 계산을 항상 함께 수행하는 통합 함수.
+  // 데이터가 바뀔 때는 항상 이 함수를 호출한다 (refreshAllRowVisuals를 단독으로 부르지 말 것).
+  function refreshCurrentDateDisplay() {
     refreshAllRowVisuals();
+    updateActivitySummary();
+  }
+
+  // 현재 화면에 보이는 날짜의 gridData를 훑어서, 제목+색상이 모두 같은 활동끼리 합산한 뒤
+  // 왼쪽(카드) 리스트에 "활동명 - 총 소요시간" 형태로 보여준다.
+  function updateActivitySummary() {
+    const totals = {}; // key: "제목\u0000색상" -> { title, color, minutes }
+
+    for (let i = 0; i < 24; i++) {
+      for (let m = 0; m < 60; m += 10) {
+        const segs = gridData[`cell-${i}-${m}`];
+        if (!segs) continue;
+
+        segs.forEach(seg => {
+          const key = seg.title + '\u0000' + seg.color;
+          if (!totals[key]) {
+            totals[key] = { title: seg.title, color: seg.color, minutes: 0 };
+          }
+          totals[key].minutes += (seg.end - seg.start);
+        });
+      }
+    }
+
+    const list = Object.values(totals).sort((a, b) => b.minutes - a.minutes);
+    const container = document.getElementById('activitySummaryList');
+    container.innerHTML = '';
+
+    if (list.length === 0) {
+      const empty = document.createElement('li');
+      empty.className = 'activity-summary-empty';
+      empty.innerText = '이 날짜에 기록된 활동이 없습니다.';
+      container.appendChild(empty);
+      return;
+    }
+
+    list.forEach(item => {
+      const li = document.createElement('li');
+      li.className = 'activity-summary-item';
+
+      const dot = document.createElement('span');
+      dot.className = 'activity-summary-dot';
+      dot.style.backgroundColor = item.color;
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'activity-summary-name';
+      nameSpan.innerText = item.title;
+
+      const durationSpan = document.createElement('span');
+      durationSpan.className = 'activity-summary-duration';
+      durationSpan.innerText = formatDurationMinutes(item.minutes);
+
+      li.appendChild(dot);
+      li.appendChild(nameSpan);
+      li.appendChild(durationSpan);
+      container.appendChild(li);
+    });
+  }
+
+  function formatDurationMinutes(totalMinutes) {
+    const hrs = Math.floor(totalMinutes / 60);
+    const mins = totalMinutes % 60;
+    if (hrs > 0 && mins > 0) return `${hrs}시간 ${mins}분`;
+    if (hrs > 0) return `${hrs}시간`;
+    return `${mins}분`;
   }
 
   function loadGridData() {
