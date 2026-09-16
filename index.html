@@ -824,6 +824,10 @@
 
   let isDragging = false;
   let selectedCellKeys = [];
+  // 라벨(기존 기록)을 탭해서 자동으로 전체 구간을 선택했을 때, 그 구간의 정확한
+  // 시작/종료 분(10분 단위가 아닐 수 있음)을 기억해뒀다가 저장 시 그대로 유지하기 위한 값.
+  // 드래그로 새 범위를 지정한 경우엔 null (이땐 칸 전체를 0~10으로 채움).
+  let selectedRunBounds = null;
   // 칸 하나(cellKey)당 값이 아니라, 세그먼트 배열을 가짐
   // 세그먼트: { start: 0~10(분, 칸 내 오프셋), end: 0~10, title, desc, color }
   let gridData = {};
@@ -1160,13 +1164,26 @@
     isDragging = false;
     if (selectedCellKeys.length === 0) return;
 
+    selectedRunBounds = null; // 기본값: 드래그로 새로 지정한 범위 (칸 전체 단위로 채움)
+
     // 드래그 없이 칸 하나만 "탭"했고, 그 칸에 기록(세그먼트 하나)이 있다면
-    // 10분 단위로 일일이 드래그하지 않아도 되도록, 이어져 있는 전체 활동 구간을 자동으로 선택
+    // 10분 단위로 일일이 드래그하지 않아도 되도록, 이어져 있는 전체 활동 구간을 자동으로 선택.
+    // 이때 그 구간의 실제 시작/종료 분(예: 14:10~14:47)을 기억해뒀다가, 저장할 때 10분 단위로
+    // 뭉개지 않고 그대로 유지한다.
     if (selectedCellKeys.length === 1 && getCellSingleSegment(selectedCellKeys[0])) {
       const fullRunKeys = getFullRunCellKeys(selectedCellKeys[0]);
       selectedCellKeys = fullRunKeys;
       clearSelectionStyles();
       highlightSelectedCells();
+
+      const firstSeg = getCellSingleSegment(fullRunKeys[0]);
+      const lastSeg = getCellSingleSegment(fullRunKeys[fullRunKeys.length - 1]);
+      selectedRunBounds = {
+        firstKey: fullRunKeys[0],
+        firstStart: firstSeg ? firstSeg.start : 0,
+        lastKey: fullRunKeys[fullRunKeys.length - 1],
+        lastEnd: lastSeg ? lastSeg.end : 10
+      };
     }
 
     openMultiCellModal();
@@ -1653,14 +1670,28 @@
     return best;
   }
 
-  // 수동 편집(모달)용: 칸 전체를 하나의 활동으로 채우거나, null이면 비움
-  function setCellData(cellKey, data) {
+  // 수동 편집(모달)용: 칸에 세그먼트를 채우거나(start~end, 기본은 칸 전체 0~10), null이면 비움
+  function setCellData(cellKey, data, start, end) {
     if (data && data.title) {
-      gridData[cellKey] = [{ start: 0, end: 10, title: data.title, desc: data.desc, color: data.color.toLowerCase() }];
+      const segStart = (typeof start === 'number') ? start : 0;
+      const segEnd = (typeof end === 'number') ? end : 10;
+      gridData[cellKey] = [{ start: segStart, end: segEnd, title: data.title, desc: data.desc, color: data.color.toLowerCase() }];
     } else {
       delete gridData[cellKey];
     }
     renderCellSegments(cellKey);
+  }
+
+  // 칸의 data-time("HH:MM", 그 10분 블록의 시작)에 분(0~10) 오프셋을 더해서 실제 시각 문자열을 만든다
+  function formatCellTimeWithOffset(cellEl, offsetMinutes) {
+    const [hh, mm] = cellEl.getAttribute('data-time').split(':').map(Number);
+    let totalMin = mm + offsetMinutes;
+    let finalHH = hh;
+    if (totalMin >= 60) {
+      totalMin -= 60;
+      finalHH = (finalHH + 1) % 24;
+    }
+    return `${String(finalHH).padStart(2, '0')}:${String(totalMin).padStart(2, '0')}`;
   }
 
   /* 모달 레이어 */
@@ -1670,10 +1701,15 @@
     const firstCell = document.getElementById(selectedCellKeys[0]);
     const lastCell = document.getElementById(selectedCellKeys[selectedCellKeys.length - 1]);
 
-    const startTime = firstCell ? firstCell.getAttribute('data-time') : '';
-    const endTime = lastCell ? lastCell.getAttribute('data-time') : '';
+    // 기존 기록을 탭해서 선택한 경우 실제 시작/종료 분(10분 단위가 아닐 수 있음)을 그대로 반영
+    const startOffset = selectedRunBounds ? selectedRunBounds.firstStart : 0;
+    const endOffset = selectedRunBounds ? selectedRunBounds.lastEnd : 10;
 
-    document.getElementById('modalTimeTitle').innerText = `${startTime} ~ ${endTime} (${selectedCellKeys.length * 10}분 선택)`;
+    const startTime = firstCell ? formatCellTimeWithOffset(firstCell, startOffset) : '';
+    const endTime = lastCell ? formatCellTimeWithOffset(lastCell, endOffset) : '';
+    const totalMinutes = (selectedCellKeys.length - 1) * 10 - startOffset + endOffset;
+
+    document.getElementById('modalTimeTitle').innerText = `${startTime} ~ ${endTime} (${totalMinutes}분 선택)`;
 
     const existingSegments = gridData[selectedCellKeys[0]] || [];
     const existingData = existingSegments.length > 0 ? existingSegments[0] : {};
@@ -1690,6 +1726,7 @@
     document.getElementById('cellModal').classList.remove('active');
     clearSelectionStyles();
     selectedCellKeys = [];
+    selectedRunBounds = null;
   }
 
   function saveModalData() {
@@ -1705,7 +1742,15 @@
     }
 
     selectedCellKeys.forEach(cellKey => {
-      setCellData(cellKey, { title, desc, color });
+      // 기존 기록(라벨 탭으로 선택된 경우)이면 그 칸의 원래 시작/종료 분을 그대로 유지하고,
+      // 새로 드래그해서 지정한 범위면 칸 전체(0~10)를 채운다.
+      let segStart = 0;
+      let segEnd = 10;
+      if (selectedRunBounds) {
+        if (cellKey === selectedRunBounds.firstKey) segStart = selectedRunBounds.firstStart;
+        if (cellKey === selectedRunBounds.lastKey) segEnd = selectedRunBounds.lastEnd;
+      }
+      setCellData(cellKey, { title, desc, color }, segStart, segEnd);
     });
 
     saveGridData();
