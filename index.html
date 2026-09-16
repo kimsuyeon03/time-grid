@@ -325,6 +325,15 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .grid-header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
     }
 
     .grid-instruction {
@@ -545,6 +554,7 @@
     .modal-title { font-weight: 700; font-size: 1.1rem; }
     .modal-close { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-sub); }
     .modal-buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+    .modal-hint { font-size: 0.8rem; color: var(--text-sub); margin-top: -6px; }
   </style>
 </head>
 <body>
@@ -595,25 +605,25 @@
         <div class="input-group" style="flex: 0 0 auto;">
           <label><i class="fa-solid fa-palette"></i> 파스텔 색상 선택</label>
           <div class="color-selection">
-            <input type="color" id="colorPicker" value="#F7EA9E">
+            <input type="color" id="colorPicker" value="#f7ea9e">
             <!-- 파스텔 색상 팔레트 -->
             <div class="color-presets" id="colorPresets">
-              <div class="color-swatch active" style="background-color: #F7EA9E;" data-color="#F7EA9E"></div>
-              <div class="color-swatch" style="background-color: #F3E3C3;" data-color="#F3E3C3"></div>
-              <div class="color-swatch" style="background-color: #F5C48D;" data-color="#F5C48D"></div>
-              <div class="color-swatch" style="background-color: #EDA396;" data-color="#EDA396"></div>
-              <div class="color-swatch" style="background-color: #DCE18A;" data-color="#DCE18A"></div>
-              <div class="color-swatch" style="background-color: #A9DB9E;" data-color="#A9DB9E"></div>
-              <div class="color-swatch" style="background-color: #9FE6C4;" data-color="#9FE6C4"></div>
-              <div class="color-swatch" style="background-color: #AEDDEA;" data-color="#AEDDEA"></div>
-              <div class="color-swatch" style="background-color: #A7C4F2;" data-color="#A7C4F2"></div>
-              <div class="color-swatch" style="background-color: #C7B2EC;" data-color="#C7B2EC"></div>
-              <div class="color-swatch" style="background-color: #F0AEEF;" data-color="#F0AEEF"></div>
-              <div class="color-swatch" style="background-color: #F0AFC4;" data-color="#F0AFC4"></div>
-              <div class="color-swatch" style="background-color: #AFA69A;" data-color="#AFA69A"></div>
-              <div class="color-swatch" style="background-color: #CDBB8C;" data-color="#CDBB8C"></div>
-              <div class="color-swatch" style="background-color: #D9D9D9;" data-color="#D9D9D9"></div>
-              <div class="color-swatch" style="background-color: #5C6B7A;" data-color="#5C6B7A"></div>
+              <div class="color-swatch active" style="background-color: #f7ea9e;" data-color="#f7ea9e"></div>
+              <div class="color-swatch" style="background-color: #f3e3c3;" data-color="#f3e3c3"></div>
+              <div class="color-swatch" style="background-color: #f5c48d;" data-color="#f5c48d"></div>
+              <div class="color-swatch" style="background-color: #eda396;" data-color="#eda396"></div>
+              <div class="color-swatch" style="background-color: #dce18a;" data-color="#dce18a"></div>
+              <div class="color-swatch" style="background-color: #a9db9e;" data-color="#a9db9e"></div>
+              <div class="color-swatch" style="background-color: #9fe6c4;" data-color="#9fe6c4"></div>
+              <div class="color-swatch" style="background-color: #aeddea;" data-color="#aeddea"></div>
+              <div class="color-swatch" style="background-color: #a7c4f2;" data-color="#a7c4f2"></div>
+              <div class="color-swatch" style="background-color: #c7b2ec;" data-color="#c7b2ec"></div>
+              <div class="color-swatch" style="background-color: #f0aeef;" data-color="#f0aeef"></div>
+              <div class="color-swatch" style="background-color: #f0afc4;" data-color="#f0afc4"></div>
+              <div class="color-swatch" style="background-color: #afa69a;" data-color="#afa69a"></div>
+              <div class="color-swatch" style="background-color: #cdbb8c;" data-color="#cdbb8c"></div>
+              <div class="color-swatch" style="background-color: #d9d9d9;" data-color="#d9d9d9"></div>
+              <div class="color-swatch" style="background-color: #5c6b7a;" data-color="#5c6b7a"></div>
             </div>
           </div>
         </div>
@@ -650,7 +660,10 @@
     <div class="card grid-card">
       <div class="grid-header">
         <h2 style="font-size: 1.1rem; font-weight: 700;"><i class="fa-solid fa-table-cells"></i> 하루 시간표 (05:00 ~ 05:00)</h2>
-        <span class="grid-instruction"><i class="fa-solid fa-hand-pointer"></i> 마우스/터치 드래그로 여러 칸을 연속 선택할 수 있습니다.</span>
+        <div class="grid-header-right">
+          <button class="date-btn" onclick="openManualEntryModal()"><i class="fa-solid fa-keyboard"></i> 시간 직접 입력</button>
+          <span class="grid-instruction"><i class="fa-solid fa-hand-pointer"></i> 드래그로 여러 칸을 연속 선택할 수도 있습니다.</span>
+        </div>
       </div>
 
       <div class="grid-container" id="gridContainer"></div>
@@ -676,30 +689,86 @@
     <div class="input-group">
       <label>파스텔 색상 선택</label>
       <div class="color-selection">
-        <input type="color" id="modalColorPicker" value="#F7EA9E">
+        <input type="color" id="modalColorPicker" value="#f7ea9e">
         <div class="color-presets" id="modalColorPresets">
-          <div class="color-swatch" style="background-color: #F7EA9E;" data-color="#F7EA9E"></div>
-          <div class="color-swatch" style="background-color: #F3E3C3;" data-color="#F3E3C3"></div>
-          <div class="color-swatch" style="background-color: #F5C48D;" data-color="#F5C48D"></div>
-          <div class="color-swatch" style="background-color: #EDA396;" data-color="#EDA396"></div>
-          <div class="color-swatch" style="background-color: #DCE18A;" data-color="#DCE18A"></div>
-          <div class="color-swatch" style="background-color: #A9DB9E;" data-color="#A9DB9E"></div>
-          <div class="color-swatch" style="background-color: #9FE6C4;" data-color="#9FE6C4"></div>
-          <div class="color-swatch" style="background-color: #AEDDEA;" data-color="#AEDDEA"></div>
-          <div class="color-swatch" style="background-color: #A7C4F2;" data-color="#A7C4F2"></div>
-          <div class="color-swatch" style="background-color: #C7B2EC;" data-color="#C7B2EC"></div>
-          <div class="color-swatch" style="background-color: #F0AEEF;" data-color="#F0AEEF"></div>
-          <div class="color-swatch" style="background-color: #F0AFC4;" data-color="#F0AFC4"></div>
-          <div class="color-swatch" style="background-color: #AFA69A;" data-color="#AFA69A"></div>
-          <div class="color-swatch" style="background-color: #CDBB8C;" data-color="#CDBB8C"></div>
-          <div class="color-swatch" style="background-color: #D9D9D9;" data-color="#D9D9D9"></div>
-          <div class="color-swatch" style="background-color: #5C6B7A;" data-color="#5C6B7A"></div>
+          <div class="color-swatch" style="background-color: #f7ea9e;" data-color="#f7ea9e"></div>
+          <div class="color-swatch" style="background-color: #f3e3c3;" data-color="#f3e3c3"></div>
+          <div class="color-swatch" style="background-color: #f5c48d;" data-color="#f5c48d"></div>
+          <div class="color-swatch" style="background-color: #eda396;" data-color="#eda396"></div>
+          <div class="color-swatch" style="background-color: #dce18a;" data-color="#dce18a"></div>
+          <div class="color-swatch" style="background-color: #a9db9e;" data-color="#a9db9e"></div>
+          <div class="color-swatch" style="background-color: #9fe6c4;" data-color="#9fe6c4"></div>
+          <div class="color-swatch" style="background-color: #aeddea;" data-color="#aeddea"></div>
+          <div class="color-swatch" style="background-color: #a7c4f2;" data-color="#a7c4f2"></div>
+          <div class="color-swatch" style="background-color: #c7b2ec;" data-color="#c7b2ec"></div>
+          <div class="color-swatch" style="background-color: #f0aeef;" data-color="#f0aeef"></div>
+          <div class="color-swatch" style="background-color: #f0afc4;" data-color="#f0afc4"></div>
+          <div class="color-swatch" style="background-color: #afa69a;" data-color="#afa69a"></div>
+          <div class="color-swatch" style="background-color: #cdbb8c;" data-color="#cdbb8c"></div>
+          <div class="color-swatch" style="background-color: #d9d9d9;" data-color="#d9d9d9"></div>
+          <div class="color-swatch" style="background-color: #5c6b7a;" data-color="#5c6b7a"></div>
         </div>
       </div>
     </div>
     <div class="modal-buttons">
       <button class="btn" style="background:#e2e8f0; color:#334155;" onclick="clearCellData()">삭제</button>
       <button class="btn btn-start" onclick="saveModalData()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- [신규] 시간 직접 입력 모달: 칸을 일일이 드래그하지 않고 시작~종료 시각을 바로 입력해서 기록 -->
+<div class="modal-overlay" id="manualEntryModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">시간 직접 입력</div>
+      <button class="modal-close" onclick="closeManualEntryModal()">&times;</button>
+    </div>
+    <div class="input-group">
+      <label for="manualTitleInput">활동 제목</label>
+      <input type="text" id="manualTitleInput" placeholder="제목을 입력하세요">
+    </div>
+    <div class="input-group">
+      <label for="manualDescInput">상세 내용</label>
+      <input type="text" id="manualDescInput" placeholder="상세 내용을 입력하세요">
+    </div>
+    <div class="inputs-row">
+      <div class="input-group">
+        <label for="manualStartInput">시작 시각</label>
+        <input type="time" id="manualStartInput" step="600">
+      </div>
+      <div class="input-group">
+        <label for="manualEndInput">종료 시각</label>
+        <input type="time" id="manualEndInput" step="600">
+      </div>
+    </div>
+    <p class="modal-hint">시작이 05:00 이전(00:00~04:59)이면 다음 날 새벽으로 계산돼요. 자정을 넘기는 기록도 그대로 입력하면 됩니다.</p>
+    <div class="input-group">
+      <label>파스텔 색상 선택</label>
+      <div class="color-selection">
+        <input type="color" id="manualColorPicker" value="#f7ea9e">
+        <div class="color-presets" id="manualColorPresets">
+          <div class="color-swatch active" style="background-color: #f7ea9e;" data-color="#f7ea9e"></div>
+          <div class="color-swatch" style="background-color: #f3e3c3;" data-color="#f3e3c3"></div>
+          <div class="color-swatch" style="background-color: #f5c48d;" data-color="#f5c48d"></div>
+          <div class="color-swatch" style="background-color: #eda396;" data-color="#eda396"></div>
+          <div class="color-swatch" style="background-color: #dce18a;" data-color="#dce18a"></div>
+          <div class="color-swatch" style="background-color: #a9db9e;" data-color="#a9db9e"></div>
+          <div class="color-swatch" style="background-color: #9fe6c4;" data-color="#9fe6c4"></div>
+          <div class="color-swatch" style="background-color: #aeddea;" data-color="#aeddea"></div>
+          <div class="color-swatch" style="background-color: #a7c4f2;" data-color="#a7c4f2"></div>
+          <div class="color-swatch" style="background-color: #c7b2ec;" data-color="#c7b2ec"></div>
+          <div class="color-swatch" style="background-color: #f0aeef;" data-color="#f0aeef"></div>
+          <div class="color-swatch" style="background-color: #f0afc4;" data-color="#f0afc4"></div>
+          <div class="color-swatch" style="background-color: #afa69a;" data-color="#afa69a"></div>
+          <div class="color-swatch" style="background-color: #cdbb8c;" data-color="#cdbb8c"></div>
+          <div class="color-swatch" style="background-color: #d9d9d9;" data-color="#d9d9d9"></div>
+          <div class="color-swatch" style="background-color: #5c6b7a;" data-color="#5c6b7a"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-buttons">
+      <button class="btn btn-start" onclick="saveManualEntry()">저장</button>
     </div>
   </div>
 </div>
@@ -751,7 +820,7 @@
   let timerState = 'STOPPED';
   let activeSession = null;
   let timerInterval = null;
-  let selectedColor = '#F7EA9E';
+  let selectedColor = '#f7ea9e';
 
   let isDragging = false;
   let selectedCellKeys = [];
@@ -765,8 +834,9 @@
   document.addEventListener('DOMContentLoaded', () => {
     createGrid();
     initDatePicker();
-    initColorPresets();
-    initModalColorPresets();
+    initPresetColorPicker('colorPresets', 'colorPicker', (color) => { selectedColor = color; });
+    initPresetColorPicker('modalColorPresets', 'modalColorPicker');
+    initPresetColorPicker('manualColorPresets', 'manualColorPicker');
     restoreActiveSession(); // 앱을 껐다 켜도 진행 중이던 타이머를 복원
 
     window.addEventListener('mouseup', endDragSelect);
@@ -977,47 +1047,31 @@
     }
   }
 
-  /* 2. 파스텔 색상 선택 로직 (메인 패널용) */
-  function initColorPresets() {
-    const swatches = document.querySelectorAll('#colorPresets .color-swatch');
-    const colorPicker = document.getElementById('colorPicker');
+  /* 2. 파스텔 색상 선택 로직 - 메인 패널/칸 수정 모달/시간 직접 입력 모달에서 공통으로 사용 */
+  function initPresetColorPicker(presetsContainerId, colorInputId, onChange) {
+    const swatches = document.querySelectorAll(`#${presetsContainerId} .color-swatch`);
+    const colorInput = document.getElementById(colorInputId);
 
     swatches.forEach(swatch => {
       swatch.addEventListener('click', () => {
         swatches.forEach(s => s.classList.remove('active'));
         swatch.classList.add('active');
-        selectedColor = swatch.getAttribute('data-color');
-        colorPicker.value = selectedColor;
+        const color = swatch.getAttribute('data-color').toLowerCase();
+        colorInput.value = color;
+        if (onChange) onChange(color);
       });
     });
 
-    colorPicker.addEventListener('input', (e) => {
-      selectedColor = e.target.value;
+    colorInput.addEventListener('input', (e) => {
       swatches.forEach(s => s.classList.remove('active'));
+      if (onChange) onChange(e.target.value.toLowerCase());
     });
   }
 
-  /* 모달(칸 직접 수정) 안의 색상 프리셋 선택 로직 - 메인 패널과 별도로 동작 */
-  function initModalColorPresets() {
-    const swatches = document.querySelectorAll('#modalColorPresets .color-swatch');
-    const colorPicker = document.getElementById('modalColorPicker');
-
-    swatches.forEach(swatch => {
-      swatch.addEventListener('click', () => {
-        swatches.forEach(s => s.classList.remove('active'));
-        swatch.classList.add('active');
-        colorPicker.value = swatch.getAttribute('data-color');
-      });
-    });
-
-    colorPicker.addEventListener('input', () => {
-      swatches.forEach(s => s.classList.remove('active'));
-    });
-  }
-
-  // 모달을 열 때, 현재 선택된 색상과 일치하는 프리셋이 있으면 활성 표시해준다
-  function syncModalColorPresetActiveState(currentColor) {
-    document.querySelectorAll('#modalColorPresets .color-swatch').forEach(s => {
+  // 특정 색상 프리셋 영역에서, 주어진 색상과 일치하는 스와치를 활성 표시해준다
+  // (칸 수정 모달/시간 직접 입력 모달을 열 때, 현재 색상에 맞는 프리셋을 미리 선택 표시하는 용도)
+  function syncColorPresetActiveState(presetsContainerId, currentColor) {
+    document.querySelectorAll(`#${presetsContainerId} .color-swatch`).forEach(s => {
       s.classList.toggle('active', s.getAttribute('data-color').toLowerCase() === (currentColor || '').toLowerCase());
     });
   }
@@ -1104,9 +1158,76 @@
   function endDragSelect() {
     if (!isDragging) return;
     isDragging = false;
-    if (selectedCellKeys.length > 0) {
-      openMultiCellModal();
+    if (selectedCellKeys.length === 0) return;
+
+    // 드래그 없이 칸 하나만 "탭"했고, 그 칸에 기록(세그먼트 하나)이 있다면
+    // 10분 단위로 일일이 드래그하지 않아도 되도록, 이어져 있는 전체 활동 구간을 자동으로 선택
+    if (selectedCellKeys.length === 1 && getCellSingleSegment(selectedCellKeys[0])) {
+      const fullRunKeys = getFullRunCellKeys(selectedCellKeys[0]);
+      selectedCellKeys = fullRunKeys;
+      clearSelectionStyles();
+      highlightSelectedCells();
     }
+
+    openMultiCellModal();
+  }
+
+  // startCellKey가 속한 칸에서 시작해서, 실제로 맞닿아 있고(앞칸 end===10, 다음칸 start===0)
+  // 제목+색상이 완전히 같은 칸들을 앞뒤로 쭉 확장해서, 그 활동 전체의 cellKey 목록을 시간 순서대로 반환.
+  // (여러 시간(행)에 걸친 기록이어도 한 번에 전부 잡힌다)
+  function getFullRunCellKeys(startCellKey) {
+    const startSeg = getCellSingleSegment(startCellKey);
+    if (!startSeg) return [startCellKey];
+
+    const parseKey = (key) => {
+      const parts = key.split('-');
+      return { h: parseInt(parts[1], 10), m: parseInt(parts[2], 10) };
+    };
+    const makeKey = (h, m) => `cell-${h}-${m}`;
+    const toGlobalIndex = (h, m) => h * 6 + (m / 10);
+    const fromGlobalIndex = (idx) => ({ h: Math.floor(idx / 6), m: (idx % 6) * 10 });
+
+    const startPos = parseKey(startCellKey);
+    const startIdx = toGlobalIndex(startPos.h, startPos.m);
+
+    // 과거(앞) 방향으로 확장
+    let leftIdx = startIdx;
+    while (leftIdx > 0) {
+      const curKey = makeKey(fromGlobalIndex(leftIdx).h, fromGlobalIndex(leftIdx).m);
+      const curSeg = getCellSingleSegment(curKey);
+      const prevPos = fromGlobalIndex(leftIdx - 1);
+      const prevKey = makeKey(prevPos.h, prevPos.m);
+      const prevSeg = getCellSingleSegment(prevKey);
+      if (!curSeg || !prevSeg) break;
+      if (prevSeg.end === 10 && curSeg.start === 0 && prevSeg.title === startSeg.title && prevSeg.color === startSeg.color) {
+        leftIdx -= 1;
+      } else {
+        break;
+      }
+    }
+
+    // 미래(뒤) 방향으로 확장
+    let rightIdx = startIdx;
+    while (rightIdx < 143) {
+      const curKey = makeKey(fromGlobalIndex(rightIdx).h, fromGlobalIndex(rightIdx).m);
+      const curSeg = getCellSingleSegment(curKey);
+      const nextPos = fromGlobalIndex(rightIdx + 1);
+      const nextKey = makeKey(nextPos.h, nextPos.m);
+      const nextSeg = getCellSingleSegment(nextKey);
+      if (!curSeg || !nextSeg) break;
+      if (curSeg.end === 10 && nextSeg.start === 0 && nextSeg.title === curSeg.title && nextSeg.color === curSeg.color) {
+        rightIdx += 1;
+      } else {
+        break;
+      }
+    }
+
+    const keys = [];
+    for (let idx = leftIdx; idx <= rightIdx; idx++) {
+      const pos = fromGlobalIndex(idx);
+      keys.push(makeKey(pos.h, pos.m));
+    }
+    return keys;
   }
 
   function highlightSelectedCells() {
@@ -1137,7 +1258,7 @@
       activeSession = {
         title,
         desc,
-        color: selectedColor,
+        color: selectedColor.toLowerCase(),
         slices: [{ start: new Date(), end: null }]
       };
     }
@@ -1535,7 +1656,7 @@
   // 수동 편집(모달)용: 칸 전체를 하나의 활동으로 채우거나, null이면 비움
   function setCellData(cellKey, data) {
     if (data && data.title) {
-      gridData[cellKey] = [{ start: 0, end: 10, title: data.title, desc: data.desc, color: data.color }];
+      gridData[cellKey] = [{ start: 0, end: 10, title: data.title, desc: data.desc, color: data.color.toLowerCase() }];
     } else {
       delete gridData[cellKey];
     }
@@ -1560,7 +1681,7 @@
     document.getElementById('modalDescInput').value = existingData.desc || document.getElementById('descInput').value || '';
     const modalColor = existingData.color || selectedColor;
     document.getElementById('modalColorPicker').value = modalColor;
-    syncModalColorPresetActiveState(modalColor);
+    syncColorPresetActiveState('modalColorPresets', modalColor);
 
     document.getElementById('cellModal').classList.add('active');
   }
@@ -1602,6 +1723,65 @@
     saveGridData();
     refreshCurrentDateDisplay();
     closeModal();
+  }
+
+  /* [신규] 시간 직접 입력 모달 - 칸을 일일이 드래그하지 않고 시작~종료 시각으로 바로 기록 */
+  function openManualEntryModal() {
+    document.getElementById('manualTitleInput').value = '';
+    document.getElementById('manualDescInput').value = '';
+    document.getElementById('manualStartInput').value = '';
+    document.getElementById('manualEndInput').value = '';
+
+    const defaultColor = selectedColor || '#f7ea9e';
+    document.getElementById('manualColorPicker').value = defaultColor;
+    syncColorPresetActiveState('manualColorPresets', defaultColor);
+
+    document.getElementById('manualEntryModal').classList.add('active');
+  }
+
+  function closeManualEntryModal() {
+    document.getElementById('manualEntryModal').classList.remove('active');
+  }
+
+  // 그리드는 "dateStr 05:00 ~ 다음날 04:59"를 하루로 취급하므로,
+  // <input type="time"> 값(00:00~04:59)은 자동으로 다음 날짜로 계산해준다.
+  function resolveGridTimeToDate(dateStr, timeStr) {
+    const [y, mo, d] = dateStr.split('-').map(Number);
+    const [hh, mm] = timeStr.split(':').map(Number);
+    const dateObj = new Date(y, mo - 1, d, hh, mm, 0, 0);
+    if (hh < 5) {
+      dateObj.setDate(dateObj.getDate() + 1);
+    }
+    return dateObj;
+  }
+
+  function saveManualEntry() {
+    const title = document.getElementById('manualTitleInput').value.trim();
+    const desc = document.getElementById('manualDescInput').value.trim();
+    const color = document.getElementById('manualColorPicker').value.toLowerCase();
+    const startStr = document.getElementById('manualStartInput').value;
+    const endStr = document.getElementById('manualEndInput').value;
+
+    if (!title) {
+      alert('활동 제목을 입력해주세요.');
+      return;
+    }
+    if (!startStr || !endStr) {
+      alert('시작 시각과 종료 시각을 모두 입력해주세요.');
+      return;
+    }
+    if (!currentDateStr) return;
+
+    const startDate = resolveGridTimeToDate(currentDateStr, startStr);
+    const endDate = resolveGridTimeToDate(currentDateStr, endStr);
+
+    if (endDate <= startDate) {
+      alert('종료 시각이 시작 시각보다 빠르거나 같습니다. 시각을 다시 확인해주세요.');
+      return;
+    }
+
+    fillGridTimeRange(startDate, endDate, title, desc, color);
+    closeManualEntryModal();
   }
 
   /* 날짜별 로컬스토리지 저장 / 불러오기 (현재 화면에 보이는 날짜용, 수동 편집 시 사용) */
@@ -1663,9 +1843,10 @@
         if (!segs) continue;
 
         segs.forEach(seg => {
-          const key = seg.title + '\u0000' + seg.color;
+          const normalizedColor = (seg.color || '').toLowerCase();
+          const key = seg.title + '\u0000' + normalizedColor;
           if (!totals[key]) {
-            totals[key] = { title: seg.title, color: seg.color, minutes: 0 };
+            totals[key] = { title: seg.title, color: normalizedColor, minutes: 0 };
           }
           totals[key].minutes += (seg.end - seg.start);
         });
