@@ -815,6 +815,7 @@
 
   let currentUser = null;
   let dayDocUnsubscribe = null;
+  let activeSessionUnsubscribe = null;
 
   let currentDateStr = '';
   let timerState = 'STOPPED';
@@ -868,9 +869,14 @@
       dayDocUnsubscribe();
       dayDocUnsubscribe = null;
     }
+    if (activeSessionUnsubscribe) {
+      activeSessionUnsubscribe();
+      activeSessionUnsubscribe = null;
+    }
 
     if (user) {
       subscribeToCurrentDay();
+      subscribeToActiveSession();
     }
   });
 
@@ -943,6 +949,115 @@
       payload: JSON.stringify(dayData),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }).catch(err => console.error('클라우드 저장 실패:', err));
+  }
+
+  function activeSessionDocRef() {
+    return db.collection('timeGridUsers').doc(currentUser.uid).collection('state').doc('activeSession');
+  }
+
+  // 진행 중인 타이머(activeSession)를 클라우드에 저장 -> 다른 기기에서 실시간으로 보고 이어가거나 끌 수 있게 함
+  function pushActiveSessionToCloud() {
+    if (!currentUser) return;
+
+    if (timerState === 'STOPPED' || !activeSession) {
+      activeSessionDocRef().delete().catch(err => console.error('타이머 클라우드 삭제 실패:', err));
+      return;
+    }
+
+    activeSessionDocRef().set({
+      timerState,
+      title: activeSession.title,
+      desc: activeSession.desc,
+      color: activeSession.color,
+      slices: activeSession.slices.map(s => ({
+        start: s.start ? s.start.toISOString() : null,
+        end: s.end ? s.end.toISOString() : null
+      })),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(err => console.error('타이머 클라우드 저장 실패:', err));
+  }
+
+  // 진행 중인 타이머 상태를 실시간으로 구독 -> 다른 기기에서 시작/일시정지/재개/정지하면 이 기기에도 즉시 반영
+  function subscribeToActiveSession() {
+    if (activeSessionUnsubscribe) {
+      activeSessionUnsubscribe();
+      activeSessionUnsubscribe = null;
+    }
+    if (!currentUser) return;
+
+    activeSessionUnsubscribe = activeSessionDocRef().onSnapshot(docSnap => {
+      if (!docSnap.exists) {
+        // 클라우드엔 진행 중인 타이머가 없음.
+        // 방금 이 기기에서 막 시작해서 아직 업로드 전인 순간이라면 업로드해서 맞춰준다.
+        if (activeSession && timerState !== 'STOPPED') {
+          pushActiveSessionToCloud();
+          return;
+        }
+        applyRemoteActiveSession(null);
+        return;
+      }
+      applyRemoteActiveSession(docSnap.data());
+    }, err => {
+      console.error('타이머 실시간 동기화 오류:', err);
+    });
+  }
+
+  // 클라우드에서 받아온 타이머 상태를 화면/로컬에 반영한다.
+  // 이 기기가 방금 보낸 내용과 똑같으면(에코) 아무 것도 다시 그리지 않아 깜빡임을 막는다.
+  function applyRemoteActiveSession(data) {
+    const isRemoteRunning = data && (data.timerState === 'RUNNING' || data.timerState === 'PAUSED');
+
+    if (!isRemoteRunning) {
+      // 다른 기기에서 정지시켰거나, 애초에 아무도 진행 중이지 않음
+      if (timerState !== 'STOPPED') {
+        clearInterval(timerInterval);
+        timerState = 'STOPPED';
+        activeSession = null;
+        clearActiveSession();
+        document.getElementById('titleInput').value = '';
+        document.getElementById('descInput').value = '';
+        updateUIForTimerState();
+        updateTimerDisplay();
+      }
+      return;
+    }
+
+    const remoteSlicesRaw = data.slices || [];
+    const remoteSerialized = JSON.stringify({ t: data.timerState, ti: data.title, d: data.desc, c: data.color, sl: remoteSlicesRaw });
+    const localSerialized = activeSession ? JSON.stringify({
+      t: timerState, ti: activeSession.title, d: activeSession.desc, c: activeSession.color,
+      sl: activeSession.slices.map(s => ({ start: s.start ? s.start.toISOString() : null, end: s.end ? s.end.toISOString() : null }))
+    }) : null;
+
+    if (remoteSerialized === localSerialized) return; // 내가 방금 보낸 내용의 에코 -> 무시
+
+    // 다른 기기에서 시작/일시정지/재개한 내용을 그대로 반영
+    clearInterval(timerInterval);
+
+    activeSession = {
+      title: data.title,
+      desc: data.desc,
+      color: data.color,
+      slices: remoteSlicesRaw.map(s => ({
+        start: s.start ? new Date(s.start) : null,
+        end: s.end ? new Date(s.end) : null
+      }))
+    };
+    timerState = data.timerState;
+
+    document.getElementById('titleInput').value = activeSession.title;
+    document.getElementById('descInput').value = activeSession.desc;
+    selectedColor = activeSession.color;
+    document.getElementById('colorPicker').value = activeSession.color;
+
+    updateUIForTimerState();
+    updateTimerDisplay();
+
+    if (timerState === 'RUNNING') {
+      timerInterval = setInterval(updateTimerDisplay, 1000);
+    }
+
+    saveActiveSession(); // 오프라인 대비 로컬에도 최신 상태 저장
   }
 
   // 이 기기의 로컬 기록 전체(모든 날짜)를 클라우드에 업로드 (최초 연동 시 사용)
@@ -1284,6 +1399,7 @@
     updateUIForTimerState();
     updateTimerDisplay();
     saveActiveSession();
+    if (currentUser) pushActiveSessionToCloud();
 
     timerInterval = setInterval(updateTimerDisplay, 1000);
   }
@@ -1295,11 +1411,13 @@
       activeSession.slices[activeSession.slices.length - 1].end = new Date();
       updateUIForTimerState();
       saveActiveSession();
+      if (currentUser) pushActiveSessionToCloud();
     } else if (timerState === 'PAUSED') {
       timerState = 'RUNNING';
       activeSession.slices.push({ start: new Date(), end: null });
       updateUIForTimerState();
       saveActiveSession();
+      if (currentUser) pushActiveSessionToCloud();
 
       timerInterval = setInterval(updateTimerDisplay, 1000);
     }
@@ -1324,6 +1442,7 @@
     activeSession = null;
 
     clearActiveSession();
+    if (currentUser) pushActiveSessionToCloud(); // 클라우드의 진행 중 타이머 기록도 정리(삭제)
     updateTimerDisplay();
     updateUIForTimerState();
 
