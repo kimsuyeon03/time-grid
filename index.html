@@ -986,17 +986,11 @@
     if (!currentUser) return;
 
     activeSessionUnsubscribe = activeSessionDocRef().onSnapshot(docSnap => {
-      if (!docSnap.exists) {
-        // 클라우드엔 진행 중인 타이머가 없음.
-        // 방금 이 기기에서 막 시작해서 아직 업로드 전인 순간이라면 업로드해서 맞춰준다.
-        if (activeSession && timerState !== 'STOPPED') {
-          pushActiveSessionToCloud();
-          return;
-        }
-        applyRemoteActiveSession(null);
-        return;
-      }
-      applyRemoteActiveSession(docSnap.data());
+      // 클라우드 문서가 없다는 건 "아무 기기에서도 진행 중인 타이머가 없다"는 뜻이므로
+      // 그대로 신뢰한다. (이 기기가 페이지 로드 직후 localStorage의 오래된 진행 상태를
+      // 먼저 복원해놨을 수 있는데, 그걸 다시 클라우드에 밀어넣으면 이미 다른 기기에서
+      // 꺼둔 타이머가 되살아나는 문제가 있었음 -> 항상 클라우드 상태로 덮어씀)
+      applyRemoteActiveSession(docSnap.exists ? docSnap.data() : null);
     }, err => {
       console.error('타이머 실시간 동기화 오류:', err);
     });
